@@ -6,10 +6,11 @@ import threading
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image
-from customtkinter import * # type: ignore
+from customtkinter import *  # type: ignore
 
 # takes in two images and simulates creating a new image using the colors form the first image spreading to approximate the second image as best as possible
 # configure maximum simulations dimension at the very bottom
+
 
 def get_neighbors_in_radius(img, x, y, radius):
     neighbors = [(x, y)]
@@ -129,7 +130,9 @@ def approximate_image(img1, img2):
 def main():
     set_appearance_mode("Dark")
     root = CTk()
-    root.geometry(f"800x600+{root.winfo_screenwidth()//2-400}+{root.winfo_screenheight()//2-300}")
+    root.geometry(
+        f"800x600+{root.winfo_screenwidth()//2-400}+{root.winfo_screenheight()//2-300}"
+    )
     frame = CTkScrollableFrame(root)
     frame.pack(expand=True, fill="both")
     # randomchoicefolder = filedialog.askdirectory(title="Select Folder")
@@ -185,7 +188,7 @@ def main():
 
     img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
     img_label = CTkLabel(frame, text="", image=img_tk)
-    img_label.image = img_tk # type: ignore
+    img_label.image = img_tk  # type: ignore
 
     # pending_set contains pixels to evaluate on next step (initially all pixels)
     pending_set = set((x, y) for x in range(img1.width) for y in range(img1.height))
@@ -227,7 +230,7 @@ def main():
         # Update GUI
         img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
         img_label.configure(image=img_tk)
-        img_label.image = img_tk # type: ignore
+        img_label.image = img_tk  # type: ignore
         img_label.pack()
 
         # increment step counter
@@ -324,26 +327,24 @@ def main():
         step_to_button.configure(state="normal")
         step_to_gif_export_button.configure(state="normal")
 
-    def shouldSaveFrame(stepsDone, img_dim, totalSteps=None):
-        result = True
+    def shouldSaveFrame(doneSteps, img_dim, totalSteps=None):
         maxDim = max(img_dim)
         if totalSteps is None:
-            # unknown amount of steps to take, use half-life
-            # first frame should always be saved
-            if doneSteps == 0:
-                result = True
-            else:
-                halfLife = maxDim / 10
-                result = random.random() < 0.5 ** (doneSteps / halfLife)
-        else:
-            # known amount of steps to take
-            # first frame should always be saved
-            if doneSteps == 0:
-                result = True
-            else:
-                halfLife = totalSteps / 10
-                result = random.random() < 0.5 ** (doneSteps / halfLife)
-        return result
+            totalSteps = maxDim  # fallback
+
+        # Always save the first frame
+        if doneSteps == 0:
+            return True
+
+        # Define a target "half-life" scale — adjust factor to tune acceleration rate
+        halfLife = totalSteps / 10
+
+        # Compute a deterministic skip factor that increases over time
+        # This formula increases exponentially, making saving rarer as steps go up
+        skip = int(1 + (doneSteps / halfLife) ** 2)
+
+        # Only save when doneSteps is a multiple of skip
+        return doneSteps % skip == 0
 
     finish_and_record_button = CTkButton(
         frame, text="Finish and record", command=finish_and_record_threaded
@@ -464,7 +465,7 @@ def main():
             )
             img1_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
             img_label.configure(image=img1_tk)
-            img_label.image = img1_tk # type: ignore
+            img_label.image = img1_tk  # type: ignore
 
     select_img1_button = CTkButton(frame, text="Select img1", command=select_img1)
     select_img1_button.pack()

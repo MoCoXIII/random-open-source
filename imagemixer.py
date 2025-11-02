@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image
 from customtkinter import *  # type: ignore
+from CTkXYFrame import *  # get it from https://github.com/Akascape/CTkXYFrame
 
 # takes in two images and simulates creating a new image using the colors form the first image spreading to approximate the second image as best as possible
 # configure maximum simulations dimension at the very bottom
@@ -133,7 +134,8 @@ def main():
     root.geometry(
         f"800x600+{root.winfo_screenwidth()//2-400}+{root.winfo_screenheight()//2-300}"
     )
-    frame = CTkScrollableFrame(root)
+
+    frame = CTkXYFrame(root)
     frame.pack(expand=True, fill="both")
     # randomchoicefolder = filedialog.askdirectory(title="Select Folder")
     # if not randomchoicefolder:

@@ -6,7 +6,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image
-from customtkinter import *
+from customtkinter import * # type: ignore
 
 # takes in two images and simulates creating a new image using the colors form the first image spreading to approximate the second image as best as possible
 # configure maximum simulations dimension at the very bottom
@@ -185,7 +185,7 @@ def main():
 
     img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
     img_label = CTkLabel(frame, text="", image=img_tk)
-    img_label.image = img_tk
+    img_label.image = img_tk # type: ignore
 
     # pending_set contains pixels to evaluate on next step (initially all pixels)
     pending_set = set((x, y) for x in range(img1.width) for y in range(img1.height))
@@ -227,7 +227,7 @@ def main():
         # Update GUI
         img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
         img_label.configure(image=img_tk)
-        img_label.image = img_tk
+        img_label.image = img_tk # type: ignore
         img_label.pack()
 
         # increment step counter
@@ -333,14 +333,16 @@ def main():
             if doneSteps == 0:
                 result = True
             else:
-                result = random.random() < 0.5 ** (doneSteps / (maxDim / 10))
+                halfLife = maxDim / 10
+                result = random.random() < 0.5 ** (doneSteps / halfLife)
         else:
             # known amount of steps to take
             # first frame should always be saved
             if doneSteps == 0:
                 result = True
             else:
-                result = random.random() < 0.5 ** (doneSteps / (totalSteps / 10))
+                halfLife = totalSteps / 10
+                result = random.random() < 0.5 ** (doneSteps / halfLife)
         return result
 
     finish_and_record_button = CTkButton(
@@ -462,7 +464,7 @@ def main():
             )
             img1_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
             img_label.configure(image=img1_tk)
-            img_label.image = img1_tk
+            img_label.image = img1_tk # type: ignore
 
     select_img1_button = CTkButton(frame, text="Select img1", command=select_img1)
     select_img1_button.pack()

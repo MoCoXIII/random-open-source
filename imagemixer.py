@@ -5,7 +5,8 @@ import time
 import threading
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from PIL import Image
+from customtkinter import *
 
 # takes in two images and simulates creating a new image using the colors form the first image spreading to approximate the second image as best as possible
 # configure maximum simulations dimension at the very bottom
@@ -126,7 +127,11 @@ def approximate_image(img1, img2):
 
 
 def main():
-    root = tk.Tk()
+    set_appearance_mode("Dark")
+    root = CTk()
+    root.geometry(f"800x600+{root.winfo_screenwidth()//2-400}+{root.winfo_screenheight()//2-300}")
+    frame = CTkScrollableFrame(root)
+    frame.pack(expand=True, fill="both")
     # randomchoicefolder = filedialog.askdirectory(title="Select Folder")
     # if not randomchoicefolder:
     #     root.destroy()
@@ -178,8 +183,8 @@ def main():
 
     new_img = Image.new("RGBA", (1, 1))
 
-    img_tk = ImageTk.PhotoImage(img1)
-    img_label = tk.Label(root, image=img_tk)
+    img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
+    img_label = CTkLabel(frame, text="", image=img_tk)
     img_label.image = img_tk
 
     # pending_set contains pixels to evaluate on next step (initially all pixels)
@@ -197,7 +202,7 @@ def main():
         if not pending_set:
             run_step.set(False)
             print("No pending pixels to process; stopping at step", doneSteps)
-            step_toggle_button.config(text="Start")
+            step_toggle_button.configure(text="Start")
             duration = time.time() - start_time
             print(f"Processing took {duration:.2f} seconds")
             return
@@ -211,7 +216,7 @@ def main():
         if not changed and new_img_snapshot.tobytes() == img1.tobytes():
             run_step.set(False)
             print("Image not changing anymore at step", doneSteps)
-            step_toggle_button.config(text="Start")
+            step_toggle_button.configure(text="Start")
             duration = time.time() - start_time
             print(f"Processing took {duration:.2f} seconds")
             return
@@ -220,8 +225,8 @@ def main():
         img1 = new_img_snapshot
 
         # Update GUI
-        img_tk = ImageTk.PhotoImage(img1)
-        img_label.config(image=img_tk)
+        img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
+        img_label.configure(image=img_tk)
         img_label.image = img_tk
         img_label.pack()
 
@@ -234,7 +239,7 @@ def main():
         if img1.tobytes() == img2.tobytes():
             run_step.set(False)
             print("Image perfect at step", doneSteps)
-            step_toggle_button.config(text="Start")
+            step_toggle_button.configure(text="Start")
             # No need to compute next pending set
             pending_set = set()
             return
@@ -249,23 +254,23 @@ def main():
                 next_pending.add(pos)
         pending_set = next_pending
 
-    run_step = tk.BooleanVar(value=False)
+    run_step = BooleanVar(value=False)
     start_time = time.time()
 
     def toggle_step():
         nonlocal run_step, step_toggle_button, start_time
         if run_step.get():
             run_step.set(False)
-            step_toggle_button.config(text="Start")
+            step_toggle_button.configure(text="Start")
             duration = time.time() - start_time
             print(f"Processing took {duration:.2f} seconds")
         else:
             run_step.set(True)
-            step_toggle_button.config(text="Stop")
+            step_toggle_button.configure(text="Stop")
             start_time = time.time()
             threading.Thread(target=stepthread).start()
 
-    step_toggle_button = tk.Button(root, text="Start", command=toggle_step)
+    step_toggle_button = CTkButton(frame, text="Start", command=toggle_step)
     step_toggle_button.pack()
 
     def finish_and_record_threaded():
@@ -273,9 +278,9 @@ def main():
 
     def finish_and_record():
         nonlocal original_1, img1, img2, new_img, step_toggle_button, doneSteps, step_to_button, step_to_gif_export_button, pending_set, start_time, run_step
-        step_to_gif_export_button.config(state="disabled")
-        step_to_button.config(state="disabled")
-        step_toggle_button.config(state="disabled")
+        step_to_gif_export_button.configure(state="disabled")
+        step_to_button.configure(state="disabled")
+        step_toggle_button.configure(state="disabled")
 
         start_time = time.time()
         run_step.set(True)
@@ -314,10 +319,10 @@ def main():
                 loop=0,
             )
 
-        step_toggle_button.config(text="Start")
-        step_toggle_button.config(state="normal")
-        step_to_button.config(state="normal")
-        step_to_gif_export_button.config(state="normal")
+        step_toggle_button.configure(text="Start")
+        step_toggle_button.configure(state="normal")
+        step_to_button.configure(state="normal")
+        step_to_gif_export_button.configure(state="normal")
 
     def shouldSaveFrame(stepsDone, img_dim, totalSteps=None):
         result = True
@@ -338,24 +343,24 @@ def main():
                 result = random.random() < 0.5 ** (doneSteps / (totalSteps / 10))
         return result
 
-    finish_and_record_button = tk.Button(
-        root, text="Finish and record", command=finish_and_record_threaded
+    finish_and_record_button = CTkButton(
+        frame, text="Finish and record", command=finish_and_record_threaded
     )
     finish_and_record_button.pack()
 
-    step_button = tk.Button(root, text="Step", command=step)
+    step_button = CTkButton(frame, text="Step", command=step)
     step_button.pack()
 
-    stepDisplayLabel = tk.Label(root, text="Steps:")
+    stepDisplayLabel = CTkLabel(frame, text="Steps:")
     stepDisplayLabel.pack()
-    stepDisplay = tk.Entry(root)
+    stepDisplay = CTkEntry(frame)
     stepDisplay.pack()
 
     def step_to(record=False):
         nonlocal original_1, img1, img2, new_img, step_toggle_button, doneSteps, step_to_button, step_to_gif_export_button, pending_set, start_time
-        step_to_gif_export_button.config(state="disabled")
-        step_to_button.config(state="disabled")
-        step_toggle_button.config(state="disabled")
+        step_to_gif_export_button.configure(state="disabled")
+        step_to_button.configure(state="disabled")
+        step_toggle_button.configure(state="disabled")
 
         start_time = time.time()
 
@@ -363,8 +368,8 @@ def main():
         step_diff = num_steps - doneSteps
         if step_diff < 0 or record:
             img1 = original_1.copy()
-            img_tk = ImageTk.PhotoImage(img1)
-            img_label.config(image=img_tk)
+            img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
+            img_label.configure(image=img_tk)
             img_label.image = img_tk  # type: ignore
             img_label.pack()
             doneSteps = 0
@@ -411,21 +416,21 @@ def main():
                     loop=1,
                 )
 
-        step_to_gif_export_button.config(state="normal")
-        step_to_button.config(state="normal")
-        step_toggle_button.config(state="normal")
+        step_to_gif_export_button.configure(state="normal")
+        step_to_button.configure(state="normal")
+        step_toggle_button.configure(state="normal")
 
     def step_to_thread():
         threading.Thread(target=step_to).start()
 
-    step_to_button = tk.Button(root, text="Step to", command=step_to_thread)
+    step_to_button = CTkButton(frame, text="Step to", command=step_to_thread)
     step_to_button.pack()
 
     def step_to_export():
         threading.Thread(target=step_to, args=(True,)).start()
 
-    step_to_gif_export_button = tk.Button(
-        root, text="Step to & export gif", command=step_to_export
+    step_to_gif_export_button = CTkButton(
+        frame, text="Step to & export gif", command=step_to_export
     )
     step_to_gif_export_button.pack()
 
@@ -437,7 +442,7 @@ def main():
         if export_path:
             new_img.save(export_path)
 
-    export_button = tk.Button(root, text="Export", command=export)
+    export_button = CTkButton(frame, text="Export", command=export)
     export_button.pack()
 
     def select_img1():
@@ -455,11 +460,11 @@ def main():
             pending_set = set(
                 (x, y) for x in range(img1.width) for y in range(img1.height)
             )
-            img1_tk = ImageTk.PhotoImage(img1)
-            img_label.config(image=img1_tk)
+            img1_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
+            img_label.configure(image=img1_tk)
             img_label.image = img1_tk
 
-    select_img1_button = tk.Button(root, text="Select img1", command=select_img1)
+    select_img1_button = CTkButton(frame, text="Select img1", command=select_img1)
     select_img1_button.pack()
 
     def select_img2():
@@ -478,7 +483,7 @@ def main():
                 (x, y) for x in range(img1.width) for y in range(img1.height)
             )
 
-    select_img2_button = tk.Button(root, text="Select img2", command=select_img2)
+    select_img2_button = CTkButton(frame, text="Select img2", command=select_img2)
     select_img2_button.pack()
 
     img_label.pack()
@@ -487,6 +492,6 @@ def main():
 
 
 if __name__ == "__main__":
-    max_width = 512
-    max_height = 512
+    max_width = 262144
+    max_height = 262144
     main()

@@ -137,44 +137,50 @@ def main():
 
     frame = CTkXYFrame(root)
     frame.pack(expand=True, fill="both")
-    # randomchoicefolder = filedialog.askdirectory(title="Select Folder")
-    # if not randomchoicefolder:
-    #     root.destroy()
-    #     return
-    # possiblechoices = []
-    # for r, dirs, files in os.walk(randomchoicefolder):
-    #     for f in files:
-    #         if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', ".gif")):
-    #             possiblechoices.append(os.path.join(r, f))
-    # img1_path = random.choice(possiblechoices)
-    # print(img1_path)
-    # img2_path = random.choice(possiblechoices)
-    # print(img2_path)
-    filetypes = [("All image files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tiff")]
-    img1_path = filedialog.askopenfilename(
-        title="Select first image", filetypes=filetypes
-    )
-    if not img1_path:
-        root.destroy()
-        return
-    img2_path = filedialog.askopenfilename(
-        title="Select second image", filetypes=filetypes
-    )
-    if not img2_path:
-        root.destroy()
-        return
-    img1 = Image.open(img1_path).convert("RGBA")
-    img2 = Image.open(img2_path).convert("RGBA")
-    # img1 = Image.new("RGBA", (128, 128))
-    # img2 = Image.new("RGBA", (128, 128))
-    # for x in range(128):
-    #     for y in range(128):
-    #         if x < 64:
-    #             img1.putpixel((x, y), (0, 0, 0, 255))
-    #             img2.putpixel((x, y), (255, 255, 255, 255))
-    #         else:
-    #             img1.putpixel((x, y), (255, 255, 255, 255))
-    #             img2.putpixel((x, y), (0, 0, 0, 255))
+    match selection:
+        case "r":
+            randomchoicefolder = filedialog.askdirectory(title="Select Folder")
+            if not randomchoicefolder:
+                root.destroy()
+                return
+            possiblechoices = []
+            for r, dirs, files in os.walk(randomchoicefolder):
+                for f in files:
+                    if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".gif")):
+                        possiblechoices.append(os.path.join(r, f))
+            img1_path = random.choice(possiblechoices)
+            print(img1_path)
+            img2_path = random.choice(possiblechoices)
+            print(img2_path)
+            img1 = Image.open(img1_path).convert("RGBA")
+            img2 = Image.open(img2_path).convert("RGBA")
+        case "s":
+            filetypes = [("All image files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tiff")]
+            img1_path = filedialog.askopenfilename(
+                title="Select first image", filetypes=filetypes
+            )
+            if not img1_path:
+                root.destroy()
+                return
+            img2_path = filedialog.askopenfilename(
+                title="Select second image", filetypes=filetypes
+            )
+            if not img2_path:
+                root.destroy()
+                return
+            img1 = Image.open(img1_path).convert("RGBA")
+            img2 = Image.open(img2_path).convert("RGBA")
+        case _:
+            img1 = Image.new("RGBA", (128, 128))
+            img2 = Image.new("RGBA", (128, 128))
+            for x in range(128):
+                for y in range(128):
+                    if x < 64:
+                        img1.putpixel((x, y), (0, 0, 0, 255))
+                        img2.putpixel((x, y), (255, 255, 255, 255))
+                    else:
+                        img1.putpixel((x, y), (255, 255, 255, 255))
+                        img2.putpixel((x, y), (0, 0, 0, 255))
     min_width = min(img1.width, img2.width)
     min_height = min(img1.height, img2.height)
     min_width = min(min_width, max_width)
@@ -497,6 +503,7 @@ def main():
 
 
 if __name__ == "__main__":
+    selection = "r" # "r" for random, "s" for selection, anything else for test image
     max_width = 262144
     max_height = 262144
     main()

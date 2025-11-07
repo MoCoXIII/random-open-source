@@ -139,6 +139,9 @@ def main():
     frame.pack(expand=True, fill="both")
     filetypes = [("All image files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tiff")]
     rngFileTypes = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+    possiblechoices = ""
+    possibleFirstChoices = ""
+    possibleSecondChoices = ""
     match selection:
         case "r":
             randomchoicefolder = filedialog.askdirectory(title="Select Folder")
@@ -260,7 +263,7 @@ def main():
         img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
         img_label.configure(image=img_tk)
         img_label.image = img_tk  # type: ignore
-        img_label.pack()
+        img_label.grid(row=imgRow, column=imgCol, columnspan=2)
 
         # increment step counter
         doneSteps += 1
@@ -303,7 +306,7 @@ def main():
             threading.Thread(target=stepthread).start()
 
     step_toggle_button = CTkButton(frame, text="Start", command=toggle_step)
-    step_toggle_button.pack()
+    step_toggle_button.grid(row=0, column=0)
 
     def finish_and_record_threaded():
         threading.Thread(target=finish_and_record).start()
@@ -378,15 +381,15 @@ def main():
     finish_and_record_button = CTkButton(
         frame, text="Finish and record", command=finish_and_record_threaded
     )
-    finish_and_record_button.pack()
+    finish_and_record_button.grid(row=0, column=1)
 
     step_button = CTkButton(frame, text="Step", command=step)
-    step_button.pack()
+    step_button.grid(row=2, column=0)
 
     stepDisplayLabel = CTkLabel(frame, text="Steps:")
-    stepDisplayLabel.pack()
+    stepDisplayLabel.grid(row=1, column=0)
     stepDisplay = CTkEntry(frame)
-    stepDisplay.pack()
+    stepDisplay.grid(row=1, column=1)
 
     def step_to(record=False):
         nonlocal original_1, img1, img2, new_img, step_toggle_button, doneSteps, step_to_button, step_to_gif_export_button, pending_set, start_time
@@ -403,7 +406,7 @@ def main():
             img_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
             img_label.configure(image=img_tk)
             img_label.image = img_tk  # type: ignore
-            img_label.pack()
+            img_label.grid(row=imgRow, column=imgCol, columnspan=2)
             doneSteps = 0
             # reset pending set to full image
             pending_set = set(
@@ -456,7 +459,7 @@ def main():
         threading.Thread(target=step_to).start()
 
     step_to_button = CTkButton(frame, text="Step to", command=step_to_thread)
-    step_to_button.pack()
+    step_to_button.grid(row=2, column=1)
 
     def step_to_export():
         threading.Thread(target=step_to, args=(True,)).start()
@@ -464,7 +467,7 @@ def main():
     step_to_gif_export_button = CTkButton(
         frame, text="Step to & export gif", command=step_to_export
     )
-    step_to_gif_export_button.pack()
+    step_to_gif_export_button.grid(row=3, column=0)
 
     def export():
         nonlocal new_img
@@ -475,7 +478,7 @@ def main():
             new_img.save(export_path)
 
     export_button = CTkButton(frame, text="Export", command=export)
-    export_button.pack()
+    export_button.grid(row=3, column=1)
 
     def select_img1():
         nonlocal img1, img2, filetypes, pending_set
@@ -497,7 +500,7 @@ def main():
             img_label.image = img1_tk  # type: ignore
 
     select_img1_button = CTkButton(frame, text="Select img1", command=select_img1)
-    select_img1_button.pack()
+    select_img1_button.grid(row=4, column=0)
 
     def select_img2():
         nonlocal img2, img1, filetypes, pending_set
@@ -516,15 +519,67 @@ def main():
             )
 
     select_img2_button = CTkButton(frame, text="Select img2", command=select_img2)
-    select_img2_button.pack()
+    select_img2_button.grid(row=4, column=1)
 
-    img_label.pack()
+    if selection in ["r", "r2"]:
+        def pick_random_img1():
+            nonlocal img1, filetypes, pending_set, possiblechoices, possibleFirstChoices, img1, img2
+            if selection == "r":
+                filepath = random.choice(possiblechoices)
+            elif selection == "r2":
+                filepath = random.choice(possibleFirstChoices)
+            img1 = Image.open(filepath).convert("RGBA")
+            min_width = min(img1.width, img2.width)
+            min_height = min(img1.height, img2.height)
+            min_width = min(min_width, max_width)
+            min_height = min(min_height, max_height)
+            img1 = img1.resize((min_width, min_height), Image.Resampling.NEAREST)
+            img2 = img2.resize((min_width, min_height), Image.Resampling.NEAREST)
+            # reset pending set to full image after new selection
+            pending_set = set(
+                (x, y) for x in range(img1.width) for y in range(img1.height)
+            )
+            img1_tk = CTkImage(light_image=img1, dark_image=img1, size=img1.size)
+            img_label.configure(image=img1_tk)
+            img_label.image = img1_tk  # type: ignore
+
+        pick_random_img1_button = CTkButton(
+            frame, text="Pick random img1", command=pick_random_img1
+        )
+        pick_random_img1_button.grid(row=5, column=0)
+
+        def pick_random_img2():
+            nonlocal img2, filetypes, pending_set, possiblechoices, possibleSecondChoices, img1, img2
+            if selection == "r":
+                filepath = random.choice(possiblechoices)
+            elif selection == "r2":
+                filepath = random.choice(possibleSecondChoices)
+            img2 = Image.open(filepath).convert("RGBA")
+            min_width = min(img1.width, img2.width)
+            min_height = min(img1.height, img2.height)
+            min_width = min(min_width, max_width)
+            min_height = min(min_height, max_height)
+            img1 = img1.resize((min_width, min_height), Image.Resampling.NEAREST)
+            img2 = img2.resize((min_width, min_height), Image.Resampling.NEAREST)
+            # changing the target may require full re-evaluation
+            pending_set = set(
+                (x, y) for x in range(img1.width) for y in range(img1.height)
+            )
+
+        pick_random_img2_button = CTkButton(
+            frame, text="Pick random img2", command=pick_random_img2
+        )
+        pick_random_img2_button.grid(row=5, column=1)
+
+    imgRow, imgCol = 6, 0
+
+    img_label.grid(row=imgRow, column=imgCol, columnspan=2)
 
     root.mainloop()
 
 
 if __name__ == "__main__":
-    selection = "s" # "r" for random, "r2" for choosing individial random choice folders for img1 and img2, "s" for selection, anything else for test image
+    selection = "r"  # "r" for random, "r2" for choosing individial random choice folders for img1 and img2, "s" for selection, anything else for test image
     max_width = 512
     max_height = 512
     main()

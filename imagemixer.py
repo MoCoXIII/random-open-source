@@ -137,6 +137,8 @@ def main():
 
     frame = CTkXYFrame(root)
     frame.pack(expand=True, fill="both")
+    filetypes = [("All image files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tiff")]
+    rngFileTypes = (".png", ".jpg", ".jpeg", ".webp", ".gif")
     match selection:
         case "r":
             randomchoicefolder = filedialog.askdirectory(title="Select Folder")
@@ -146,7 +148,7 @@ def main():
             possiblechoices = []
             for r, dirs, files in os.walk(randomchoicefolder):
                 for f in files:
-                    if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".gif")):
+                    if f.lower().endswith(rngFileTypes):
                         possiblechoices.append(os.path.join(r, f))
             img1_path = random.choice(possiblechoices)
             print(img1_path)
@@ -154,8 +156,27 @@ def main():
             print(img2_path)
             img1 = Image.open(img1_path).convert("RGBA")
             img2 = Image.open(img2_path).convert("RGBA")
+        case "r2":
+            randomFirstFolder = filedialog.askdirectory(title="First Folder")
+            randomSecondFolder = filedialog.askdirectory(title="Second Folder")
+            if not randomFirstFolder or not randomSecondFolder:
+                root.destroy()
+                return
+            possibleFirstChoices = []
+            possibleSecondChoices = []
+            for r, dirs, files in os.walk(randomFirstFolder):
+                for f in files:
+                    if f.lower().endswith(rngFileTypes):
+                        possibleFirstChoices.append(os.path.join(r, f))
+            for r, dirs, files in os.walk(randomSecondFolder):
+                for f in files:
+                    if f.lower().endswith(rngFileTypes):
+                        possibleSecondChoices.append(os.path.join(r, f))
+            img1_path = random.choice(possibleFirstChoices)
+            img2_path = random.choice(possibleSecondChoices)
+            img1 = Image.open(img1_path).convert("RGBA")
+            img2 = Image.open(img2_path).convert("RGBA")
         case "s":
-            filetypes = [("All image files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tiff")]
             img1_path = filedialog.askopenfilename(
                 title="Select first image", filetypes=filetypes
             )
@@ -503,7 +524,7 @@ def main():
 
 
 if __name__ == "__main__":
-    selection = "r" # "r" for random, "s" for selection, anything else for test image
-    max_width = 262144
-    max_height = 262144
+    selection = "s" # "r" for random, "r2" for choosing individial random choice folders for img1 and img2, "s" for selection, anything else for test image
+    max_width = 512
+    max_height = 512
     main()

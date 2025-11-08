@@ -481,10 +481,10 @@ def main():
     export_button.grid(row=3, column=1)
 
     def select_img1():
-        nonlocal img1, img2, filetypes, pending_set
-        filepath = filedialog.askopenfilename(title="Select img1", filetypes=filetypes)
-        if filepath:
-            img1 = Image.open(filepath).convert("RGBA")
+        nonlocal img1, img2, filetypes, pending_set, img1_path
+        img1_path = filedialog.askopenfilename(title="Select img1", filetypes=filetypes)
+        if img1_path:
+            img1 = Image.open(img1_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
             min_width = min(min_width, max_width)
@@ -503,10 +503,10 @@ def main():
     select_img1_button.grid(row=4, column=0)
 
     def select_img2():
-        nonlocal img2, img1, filetypes, pending_set
-        filepath = filedialog.askopenfilename(title="Select img2", filetypes=filetypes)
-        if filepath:
-            img2 = Image.open(filepath).convert("RGBA")
+        nonlocal img2, img1, filetypes, pending_set, img2_path
+        img2_path = filedialog.askopenfilename(title="Select img2", filetypes=filetypes)
+        if img2_path:
+            img2 = Image.open(img2_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
             min_width = min(min_width, max_width)
@@ -523,12 +523,12 @@ def main():
 
     if selection in ["r", "r2"]:
         def pick_random_img1():
-            nonlocal img1, filetypes, pending_set, possiblechoices, possibleFirstChoices, img1, img2
+            nonlocal img1, filetypes, pending_set, possiblechoices, possibleFirstChoices, img1, img2, img1_path
             if selection == "r":
-                filepath = random.choice(possiblechoices)
+                img1_path = random.choice(possiblechoices)
             elif selection == "r2":
-                filepath = random.choice(possibleFirstChoices)
-            img1 = Image.open(filepath).convert("RGBA")
+                img1_path = random.choice(possibleFirstChoices)
+            img1 = Image.open(img1_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
             min_width = min(min_width, max_width)
@@ -549,12 +549,12 @@ def main():
         pick_random_img1_button.grid(row=5, column=0)
 
         def pick_random_img2():
-            nonlocal img2, filetypes, pending_set, possiblechoices, possibleSecondChoices, img1, img2
+            nonlocal img2, filetypes, pending_set, possiblechoices, possibleSecondChoices, img1, img2, img2_path
             if selection == "r":
-                filepath = random.choice(possiblechoices)
+                img2_path = random.choice(possiblechoices)
             elif selection == "r2":
-                filepath = random.choice(possibleSecondChoices)
-            img2 = Image.open(filepath).convert("RGBA")
+                img2_path = random.choice(possibleSecondChoices)
+            img2 = Image.open(img2_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
             min_width = min(min_width, max_width)
@@ -570,8 +570,24 @@ def main():
             frame, text="Pick random img2", command=pick_random_img2
         )
         pick_random_img2_button.grid(row=5, column=1)
+    
+    def open_img1():
+        nonlocal img1
+        if img1:
+            os.startfile(str(img1_path))
 
-    imgRow, imgCol = 6, 0
+    def open_img2():
+        nonlocal img2
+        if img2:
+            os.startfile(str(img2_path))
+
+    open_img1_button = CTkButton(frame, text="Open img1", command=open_img1)
+    open_img1_button.grid(row=6, column=0)
+
+    open_img2_button = CTkButton(frame, text="Open img2", command=open_img2)
+    open_img2_button.grid(row=6, column=1)
+
+    imgRow, imgCol = 7, 0
 
     img_label.grid(row=imgRow, column=imgCol, columnspan=2)
 

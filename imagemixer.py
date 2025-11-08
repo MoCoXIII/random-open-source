@@ -154,10 +154,10 @@ def main():
                     if f.lower().endswith(rngFileTypes):
                         possiblechoices.append(os.path.join(r, f))
             img1_path = random.choice(possiblechoices)
-            print(img1_path)
             img2_path = random.choice(possiblechoices)
-            print(img2_path)
+            print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
+            print("Img2:", img2_path)
             img2 = Image.open(img2_path).convert("RGBA")
         case "r2":
             randomFirstFolder = filedialog.askdirectory(title="First Folder")
@@ -177,7 +177,9 @@ def main():
                         possibleSecondChoices.append(os.path.join(r, f))
             img1_path = random.choice(possibleFirstChoices)
             img2_path = random.choice(possibleSecondChoices)
+            print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
+            print("Img2:", img2_path)
             img2 = Image.open(img2_path).convert("RGBA")
         case "s":
             img1_path = filedialog.askopenfilename(
@@ -192,7 +194,9 @@ def main():
             if not img2_path:
                 root.destroy()
                 return
+            print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
+            print("Img2:", img2_path)
             img2 = Image.open(img2_path).convert("RGBA")
         case _:
             img1 = Image.new("RGBA", (128, 128))
@@ -484,6 +488,7 @@ def main():
         nonlocal img1, img2, filetypes, pending_set, img1_path
         img1_path = filedialog.askopenfilename(title="Select img1", filetypes=filetypes)
         if img1_path:
+            print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
@@ -506,6 +511,7 @@ def main():
         nonlocal img2, img1, filetypes, pending_set, img2_path
         img2_path = filedialog.askopenfilename(title="Select img2", filetypes=filetypes)
         if img2_path:
+            print("Img2:", img2_path)
             img2 = Image.open(img2_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
@@ -528,6 +534,7 @@ def main():
                 img1_path = random.choice(possiblechoices)
             elif selection == "r2":
                 img1_path = random.choice(possibleFirstChoices)
+            print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
@@ -554,6 +561,7 @@ def main():
                 img2_path = random.choice(possiblechoices)
             elif selection == "r2":
                 img2_path = random.choice(possibleSecondChoices)
+            print("Img2:", img2_path)
             img2 = Image.open(img2_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)

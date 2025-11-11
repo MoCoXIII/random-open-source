@@ -94,4 +94,4 @@ for filename in dirlist:
     except Exception as e:
         print(f"Failed to copy {filename}: {e}")
 
-root.mainloop()
+reset = filedialog.askdirectory(initialdir=DEST, title="Select folder to open filedialog at next time")

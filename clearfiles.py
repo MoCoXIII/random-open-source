@@ -19,7 +19,7 @@ maxSizeBytes = maxSizeKB * 1024
 folder = filedialog.askdirectory()
 
 for filename in os.listdir(folder):
-    filepath = os.path.join(folder, filename)
+    filepath = os.path.normpath(os.path.join(folder, filename))
     filesize = os.path.getsize(filepath)
     if filesize > maxSizeBytes:
         print(f"{filename} is larger than {maxSizeMB} MB")

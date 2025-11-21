@@ -21,8 +21,9 @@ folder = filedialog.askdirectory()
 for filename in os.listdir(folder):
     filepath = os.path.normpath(os.path.join(folder, filename))
     filesize = os.path.getsize(filepath)
-    if filesize > maxSizeBytes:
+    if filesize > maxSizeBytes and not filename.endswith((".pdf", ".zip", ".jpg", ".jpeg", ".png")):
         print(f"{filename} is larger than {maxSizeMB} MB")
-        subprocess.run(["explorer.exe", "/select,", filepath], check=True)
+        # subprocess.run(["explorer.exe", "/select,", filepath])
         if messagebox.askyesno("File too large", f"File {filename} ({filesize / 1024 / 1024:.2f} MB) is larger than {maxSizeMB} MB. Clear content?"):
             subprocess.run(["powershell.exe", f"Clear-Content -Path \"{filepath}\""], check=True)
+print("Done checking everything.")

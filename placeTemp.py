@@ -10,6 +10,9 @@ import tkinter as tk
 # previews images and videos within tkinter or pyvidplayer preview
 # detects duplicate filenames and deletes from temp if they are the same (if not the same file, don't delete so you may rename it)
 
+# it is recommended to look for duplicate files using a program like czkawka first
+# https://github.com/qarmin/czkawka
+
 TEMP = filedialog.askdirectory(title="Select Temp Folder")
 DEST = filedialog.askdirectory(title="Select Default Destination Folder")
 lastDest = DEST

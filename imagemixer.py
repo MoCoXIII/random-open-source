@@ -4,7 +4,7 @@ import tempfile
 import time
 import threading
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, simpledialog
 from PIL import Image
 from customtkinter import *  # type: ignore
 from CTkXYFrame import *  # get it from https://github.com/Akascape/CTkXYFrame
@@ -12,6 +12,14 @@ from CTkXYFrame import *  # get it from https://github.com/Akascape/CTkXYFrame
 # takes in two images and simulates creating a new image using the colors form the first image spreading to approximate the second image as best as possible
 # configure maximum simulations dimension at the very bottom
 
+row, col = 0, 0
+def rc(newline:bool=False):
+    global row, col
+    if not newline:
+        col += 1
+    else:
+        row += 1
+        col = 0
 
 def get_neighbors_in_radius(img, x, y, radius):
     neighbors = [(x, y)]
@@ -219,6 +227,7 @@ def main():
     original_1 = img1.copy()
 
     doneSteps = 0
+    serial = False
 
     new_img = Image.new("RGBA", (1, 1))
 
@@ -252,7 +261,7 @@ def main():
         )
 
         # If nothing changed at all, stop
-        if not changed and new_img_snapshot.tobytes() == img1.tobytes():
+        if not changed and new_img_snapshot.tobytes() == img1.tobytes() and (not serial or doneSteps > img1.width * img1.height):
             run_step.set(False)
             print("Image not changing anymore at step", doneSteps)
             step_toggle_button.configure(text="Start")
@@ -286,11 +295,21 @@ def main():
         # Compute next pending set: any pixel that could have their best neighbor change,
         # i.e., any pixel within radius of a changed pixel (including changed pixels themselves)
         next_pending = set()
-        for cx, cy in changed:
-            for pos in get_positions_in_radius(
-                cx, cy, search_radius, img1.width, img1.height
-            ):
-                next_pending.add(pos)
+        if not serial:
+            for cx, cy in changed:
+                for pos in get_positions_in_radius(
+                    cx, cy, search_radius, img1.width, img1.height
+                ):
+                    next_pending.add(pos)
+        else:
+            first_pending = next(iter(pending_set), None)
+            if first_pending is None:
+                next_pending = set()
+            else:
+                x, y = first_pending
+                x = (x + 1) % img1.width
+                y = (y + (x == 0)) % img1.height
+                next_pending = set([(x, y)])
         pending_set = next_pending
 
     run_step = BooleanVar(value=False)
@@ -310,7 +329,7 @@ def main():
             threading.Thread(target=stepthread).start()
 
     step_toggle_button = CTkButton(frame, text="Start", command=toggle_step)
-    step_toggle_button.grid(row=0, column=0)
+    step_toggle_button.grid(row=row, column=col)
 
     def finish_and_record_threaded():
         threading.Thread(target=finish_and_record).start()
@@ -385,15 +404,19 @@ def main():
     finish_and_record_button = CTkButton(
         frame, text="Finish and record", command=finish_and_record_threaded
     )
-    finish_and_record_button.grid(row=0, column=1)
-
-    step_button = CTkButton(frame, text="Step", command=step)
-    step_button.grid(row=2, column=0)
+    rc()
+    finish_and_record_button.grid(row=row, column=col)
 
     stepDisplayLabel = CTkLabel(frame, text="Steps:")
-    stepDisplayLabel.grid(row=1, column=0)
+    rc(True)
+    stepDisplayLabel.grid(row=row, column=col)
     stepDisplay = CTkEntry(frame)
-    stepDisplay.grid(row=1, column=1)
+    rc()
+    stepDisplay.grid(row=row, column=col)
+    
+    step_button = CTkButton(frame, text="Step", command=step)
+    rc(True)
+    step_button.grid(row=row, column=col)
 
     def step_to(record=False):
         nonlocal original_1, img1, img2, new_img, step_toggle_button, doneSteps, step_to_button, step_to_gif_export_button, pending_set, start_time
@@ -463,7 +486,8 @@ def main():
         threading.Thread(target=step_to).start()
 
     step_to_button = CTkButton(frame, text="Step to", command=step_to_thread)
-    step_to_button.grid(row=2, column=1)
+    rc()
+    step_to_button.grid(row=row, column=col)
 
     def step_to_export():
         threading.Thread(target=step_to, args=(True,)).start()
@@ -471,7 +495,8 @@ def main():
     step_to_gif_export_button = CTkButton(
         frame, text="Step to & export gif", command=step_to_export
     )
-    step_to_gif_export_button.grid(row=3, column=0)
+    rc(True)
+    step_to_gif_export_button.grid(row=row, column=col)
 
     def export():
         nonlocal new_img
@@ -482,7 +507,8 @@ def main():
             new_img.save(export_path)
 
     export_button = CTkButton(frame, text="Export", command=export)
-    export_button.grid(row=3, column=1)
+    rc()
+    export_button.grid(row=row, column=col)
 
     def select_img1():
         nonlocal img1, img2, filetypes, pending_set, img1_path
@@ -505,7 +531,8 @@ def main():
             img_label.image = img1_tk  # type: ignore
 
     select_img1_button = CTkButton(frame, text="Select img1", command=select_img1)
-    select_img1_button.grid(row=4, column=0)
+    rc(True)
+    select_img1_button.grid(row=row, column=col)
 
     def select_img2():
         nonlocal img2, img1, filetypes, pending_set, img2_path
@@ -525,7 +552,8 @@ def main():
             )
 
     select_img2_button = CTkButton(frame, text="Select img2", command=select_img2)
-    select_img2_button.grid(row=4, column=1)
+    rc()
+    select_img2_button.grid(row=row, column=col)
 
     if selection in ["r", "r2"]:
         def pick_random_img1():
@@ -553,7 +581,8 @@ def main():
         pick_random_img1_button = CTkButton(
             frame, text="Pick random img1", command=pick_random_img1
         )
-        pick_random_img1_button.grid(row=5, column=0)
+        rc(True)
+        pick_random_img1_button.grid(row=row, column=col)
 
         def pick_random_img2():
             nonlocal img2, filetypes, pending_set, possiblechoices, possibleSecondChoices, img1, img2, img2_path
@@ -577,7 +606,8 @@ def main():
         pick_random_img2_button = CTkButton(
             frame, text="Pick random img2", command=pick_random_img2
         )
-        pick_random_img2_button.grid(row=5, column=1)
+        rc()
+        pick_random_img2_button.grid(row=row, column=col)
     
     def open_img1():
         nonlocal img1
@@ -589,13 +619,54 @@ def main():
         if img2:
             os.startfile(str(img2_path))
 
+    rc(True)
     open_img1_button = CTkButton(frame, text="Open img1", command=open_img1)
-    open_img1_button.grid(row=6, column=0)
+    open_img1_button.grid(row=row, column=col)
 
     open_img2_button = CTkButton(frame, text="Open img2", command=open_img2)
-    open_img2_button.grid(row=6, column=1)
+    rc()
+    open_img2_button.grid(row=row, column=col)
+    
+    def sprout(x=random.randint(0, img1.width - 1), y=random.randint(0, img1.height - 1)):
+        """empty pending set and put in only one random pixel"""
+        nonlocal pending_set
+        pending_set.clear()
+        pending_set.add((x, y))
+        toggle_step()
+    sprout_button = CTkButton(frame, text="Sprout", command=sprout)
+    rc(True)
+    sprout_button.grid(row=row, column=col)
+    
+    def customSprout():
+        y = simpledialog.askinteger("Custom Sprout", "Height", minvalue=0, maxvalue=img1.height - 1, initialvalue=img1.height // 2)
+        x = simpledialog.askinteger("Custom Sprout", "Width", minvalue=0, maxvalue=img1.width - 1, initialvalue=img1.width // 2)
+        if x and y:
+            sprout(x, y)
+    custom_button = CTkButton(frame, text="Custom Sprout", command=customSprout)
+    rc()
+    custom_button.grid(row=row, column=col)
+    
+    def pendAll():
+        nonlocal pending_set
+        pending_set = set(
+            (x, y) for x in range(img1.width) for y in range(img1.height)
+        )
+    pendAll_button = CTkButton(frame, text="Pend All", command=pendAll)
+    rc(True)
+    pendAll_button.grid(row=row, column=col)
+    
+    def toggleSerial():
+        nonlocal serial
+        serial = not serial
+        toggleSerial_button.configure(text="Disable Serial" if serial else "Enable Serial")
+        if serial:
+            sprout(0, 0)
+    toggleSerial_button = CTkButton(frame, text="Toggle Serial", command=toggleSerial)
+    rc()
+    toggleSerial_button.grid(row=row, column=col)
 
-    imgRow, imgCol = 7, 0
+    rc(True)
+    imgRow, imgCol = row, col
 
     img_label.grid(row=imgRow, column=imgCol, columnspan=2)
 
@@ -604,6 +675,6 @@ def main():
 
 if __name__ == "__main__":
     selection = "r"  # "r" for random, "r2" for choosing individial random choice folders for img1 and img2, "s" for selection, anything else for test image
-    max_width = 512
-    max_height = 512
+    max_width = 1920
+    max_height = 1080 - 300
     main()

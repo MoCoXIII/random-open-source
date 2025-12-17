@@ -104,19 +104,52 @@ def approximate_image_incremental(img1, img2, pixels_to_check):
     """
     new_img = img1.copy()
     changed = set()
-    for x, y in pixels_to_check:
-        # If already identical to target, keep same pixel (and it won't change)
-        if img1.getpixel((x, y)) == img2.getpixel((x, y)):
-            # ensure new_img has the same pixel (copy preserves it, but keep consistent)
-            continue
-        best_color = best_color_in_radius(img1, img2, x, y)
-        if best_color:
-            if best_color != img1.getpixel((x, y)):
-                new_img.putpixel((x, y), best_color)
+    pixels_to_ignore = set()
+    if not swap:
+        for x, y in pixels_to_check:
+            # If already identical to target, keep same pixel (and it won't change)
+            if img1.getpixel((x, y)) == img2.getpixel((x, y)):
+                # ensure new_img has the same pixel (copy preserves it, but keep consistent by not modifying it)
+                continue
+            best_color = best_color_in_radius(img1, img2, x, y)
+            if best_color:
+                if best_color != img1.getpixel((x, y)):
+                    new_img.putpixel((x, y), best_color)
+                    changed.add((x, y))
+            else:
+                # no better neighbor found, keep original
+                continue
+    else:
+        for x, y in pixels_to_check:
+            # If already identical to target, keep same pixel (and it won't change)
+            if img1.getpixel((x, y)) == img2.getpixel((x, y)) or (x, y) in pixels_to_ignore:
+                # ensure new_img has the same pixel (copy preserves it, but keep consistent by not modifying it)
+                continue
+            best_pixel = None
+            best_diff = float("inf")
+            for nx, ny in get_positions_in_radius(x, y, img1.width, img1.height):
+                if (nx, ny) in pixels_to_ignore:
+                    continue
+                diff_not_switched = abs(img1.getpixel((nx, ny))[0] - img2.getpixel((x, y))[0]) + abs(
+                    img1.getpixel((nx, ny))[1] - img2.getpixel((x, y))[1]
+                ) + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((x, y))[2]) + abs(
+                    img1.getpixel((nx, ny))[3] - img2.getpixel((x, y))[3]
+                )
+                diff_switched = abs(img1.getpixel((nx, ny))[0] - img2.getpixel((nx, ny))[0]) + abs(
+                    img1.getpixel((nx, ny))[1] - img2.getpixel((nx, ny))[1]
+                ) + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((nx, ny))[2]) + abs(
+                    img1.getpixel((nx, ny))[3] - img2.getpixel((nx, ny))[3]
+                )
+                diff = min(diff_not_switched, diff_switched)
+                if diff < best_diff:
+                    best_diff = diff
+                    best_pixel = (nx, ny)
+            if best_pixel:
+                new_img.putpixel((x, y), img1.getpixel(best_pixel))
                 changed.add((x, y))
-        else:
-            # no better neighbor found, keep original
-            continue
+                new_img.putpixel(best_pixel, img1.getpixel((x, y)))
+                changed.add(best_pixel)
+                pixels_to_ignore.add(best_pixel)
     return new_img, changed
 
 

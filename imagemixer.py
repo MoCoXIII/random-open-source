@@ -712,7 +712,7 @@ if __name__ == "__main__":
     radius = 1  # manhattan distance to neighbors to consider
     stepX = 1  # only for ...
     stepY = 1  # ... serial mode
-    swap = True
+    swap = False
     serial = False
     max_height = 500
     max_width = max_height

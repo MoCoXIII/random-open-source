@@ -21,7 +21,7 @@ def rc(newline:bool=False):
         row += 1
         col = 0
 
-def get_neighbors_in_radius(img, x, y, radius):
+def get_neighbors_in_radius(img, x, y):
     neighbors = [(x, y)]
     for i in range(-radius, radius + 1):
         for j in range(-radius, radius + 1):
@@ -31,7 +31,7 @@ def get_neighbors_in_radius(img, x, y, radius):
     return neighbors
 
 
-def best_color_in_radius(img1, img2, x, y, radius, seperate=False):
+def best_color_in_radius(img1, img2, x, y, seperate=False):
     best_r_diff = float("inf")
     best_g_diff = float("inf")
     best_b_diff = float("inf")
@@ -44,7 +44,7 @@ def best_color_in_radius(img1, img2, x, y, radius, seperate=False):
     best_diff = float("inf")
     target_color = img2.getpixel((x, y))
 
-    for neighbor_x, neighbor_y in get_neighbors_in_radius(img1, x, y, radius):
+    for neighbor_x, neighbor_y in get_neighbors_in_radius(img1, x, y):
         source_color = img1.getpixel((neighbor_x, neighbor_y))
         r_diff = abs(source_color[0] - target_color[0])
         g_diff = abs(source_color[1] - target_color[1])
@@ -86,7 +86,7 @@ def best_color_in_radius(img1, img2, x, y, radius, seperate=False):
 
 
 # New helper: compute positions within radius of a given pixel (bounded)
-def get_positions_in_radius(x, y, radius, width, height):
+def get_positions_in_radius(x, y, width, height):
     positions = []
     for i in range(-radius, radius + 1):
         for j in range(-radius, radius + 1):
@@ -97,7 +97,7 @@ def get_positions_in_radius(x, y, radius, width, height):
 
 
 # New incremental approximate function: process only pixels in pixels_to_check
-def approximate_image_incremental(img1, img2, pixels_to_check, radius=1):
+def approximate_image_incremental(img1, img2, pixels_to_check):
     """
     Process only pixels in pixels_to_check based on the snapshot img1 and target img2.
     Returns (new_img, changed_set) where changed_set is a set of coords that changed.
@@ -109,7 +109,7 @@ def approximate_image_incremental(img1, img2, pixels_to_check, radius=1):
         if img1.getpixel((x, y)) == img2.getpixel((x, y)):
             # ensure new_img has the same pixel (copy preserves it, but keep consistent)
             continue
-        best_color = best_color_in_radius(img1, img2, x, y, radius)
+        best_color = best_color_in_radius(img1, img2, x, y)
         if best_color:
             if best_color != img1.getpixel((x, y)):
                 new_img.putpixel((x, y), best_color)
@@ -128,7 +128,7 @@ def approximate_image(img1, img2):
                 new_img.putpixel((x, y), img1.getpixel((x, y)))
                 # print("Saving time by not checking perfect pixel", (x, y), end="\r")
                 continue
-            best_color = best_color_in_radius(img1, img2, x, y, 1)
+            best_color = best_color_in_radius(img1, img2, x, y)
             if best_color:
                 new_img.putpixel((x, y), best_color)
             else:
@@ -237,7 +237,6 @@ def main():
 
     # pending_set contains pixels to evaluate on next step (initially all pixels)
     pending_set = set((x, y) for x in range(img1.width) for y in range(img1.height))
-    search_radius = 1
 
     def stepthread():
         nonlocal run_step
@@ -257,7 +256,7 @@ def main():
 
         # Process only pending pixels using img1 snapshot
         new_img_snapshot, changed = approximate_image_incremental(
-            img1, img2, pending_set, search_radius
+            img1, img2, pending_set
         )
 
         # If nothing changed at all, stop
@@ -298,7 +297,7 @@ def main():
         if not serial:
             for cx, cy in changed:
                 for pos in get_positions_in_radius(
-                    cx, cy, search_radius, img1.width, img1.height
+                    cx, cy, img1.width, img1.height
                 ):
                     next_pending.add(pos)
         else:
@@ -307,8 +306,8 @@ def main():
                 next_pending = set()
             else:
                 x, y = first_pending
-                x = (x + 1) % img1.width
-                y = (y + (x == 0)) % img1.height
+                x = (x + stepX) % img1.width
+                y = (y + (x == 0) * stepY) % img1.height
                 next_pending = set([(x, y)])
         pending_set = next_pending
 
@@ -675,6 +674,10 @@ def main():
 
 if __name__ == "__main__":
     selection = "r"  # "r" for random, "r2" for choosing individial random choice folders for img1 and img2, "s" for selection, anything else for test image
-    max_width = 1920
+    radius = 1  # manhattan distance to neighbors to consider
+    stepX = 1  # only for ...
+    stepY = 1  # ... serial mode
+    swap = True
     max_height = 1080 - 300
+    max_width = max_height
     main()

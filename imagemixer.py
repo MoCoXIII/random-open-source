@@ -105,6 +105,7 @@ def approximate_image_incremental(img1, img2, pixels_to_check):
     new_img = img1.copy()
     changed = set()
     pixels_to_ignore = set()
+    best_pixels = set()
     if not swap:
         for x, y in pixels_to_check:
             # If already identical to target, keep same pixel (and it won't change)
@@ -140,9 +141,8 @@ def approximate_image_incremental(img1, img2, pixels_to_check):
                 ) + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((nx, ny))[2]) + abs(
                     img1.getpixel((nx, ny))[3] - img2.getpixel((nx, ny))[3]
                 )
-                diff = min(diff_not_switched, diff_switched)
-                if diff < best_diff:
-                    best_diff = diff
+                if diff_not_switched > diff_switched and diff_switched < best_diff:
+                    best_diff = diff_switched
                     best_pixel = (nx, ny)
             if best_pixel:
                 new_img.putpixel((x, y), img1.getpixel(best_pixel))
@@ -150,7 +150,8 @@ def approximate_image_incremental(img1, img2, pixels_to_check):
                 new_img.putpixel(best_pixel, img1.getpixel((x, y)))
                 changed.add(best_pixel)
                 pixels_to_ignore.add(best_pixel)
-    return new_img, changed
+                best_pixels.add(best_pixel)
+    return new_img, changed, best_pixels
 
 
 def approximate_image(img1, img2):
@@ -260,7 +261,6 @@ def main():
     original_1 = img1.copy()
 
     doneSteps = 0
-    serial = False
 
     new_img = Image.new("RGBA", (1, 1))
 
@@ -288,7 +288,7 @@ def main():
             return
 
         # Process only pending pixels using img1 snapshot
-        new_img_snapshot, changed = approximate_image_incremental(
+        new_img_snapshot, changed, best = approximate_image_incremental(
             img1, img2, pending_set
         )
 
@@ -337,6 +337,8 @@ def main():
             first_pending = next(iter(pending_set), None)
             if first_pending is None:
                 next_pending = set()
+            elif best:
+                next_pending = set((x, y) for x, y in best)
             else:
                 x, y = first_pending
                 x = (x + stepX) % img1.width
@@ -688,7 +690,7 @@ def main():
     pendAll_button.grid(row=row, column=col)
     
     def toggleSerial():
-        nonlocal serial
+        global serial
         serial = not serial
         toggleSerial_button.configure(text="Disable Serial" if serial else "Enable Serial")
         if serial:
@@ -711,6 +713,7 @@ if __name__ == "__main__":
     stepX = 1  # only for ...
     stepY = 1  # ... serial mode
     swap = True
-    max_height = 1080 - 300
+    serial = False
+    max_height = 500
     max_width = max_height
     main()

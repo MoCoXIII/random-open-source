@@ -13,13 +13,16 @@ from CTkXYFrame import *  # get it from https://github.com/Akascape/CTkXYFrame
 # configure maximum simulations dimension at the very bottom
 
 row, col = 0, 0
-def rc(newline:bool=False):
+
+
+def rc(newline: bool = False):
     global row, col
     if not newline:
         col += 1
     else:
         row += 1
         col = 0
+
 
 def get_neighbors_in_radius(img, x, y):
     neighbors = [(x, y)]
@@ -123,7 +126,10 @@ def approximate_image_incremental(img1, img2, pixels_to_check):
     else:
         for x, y in pixels_to_check:
             # If already identical to target, keep same pixel (and it won't change)
-            if img1.getpixel((x, y)) == img2.getpixel((x, y)) or (x, y) in pixels_to_ignore:
+            if (
+                img1.getpixel((x, y)) == img2.getpixel((x, y))
+                or (x, y) in pixels_to_ignore
+            ):
                 # ensure new_img has the same pixel (copy preserves it, but keep consistent by not modifying it)
                 continue
             best_pixel = None
@@ -131,15 +137,17 @@ def approximate_image_incremental(img1, img2, pixels_to_check):
             for nx, ny in get_positions_in_radius(x, y, img1.width, img1.height):
                 if (nx, ny) in pixels_to_ignore:
                     continue
-                diff_not_switched = abs(img1.getpixel((nx, ny))[0] - img2.getpixel((x, y))[0]) + abs(
-                    img1.getpixel((nx, ny))[1] - img2.getpixel((x, y))[1]
-                ) + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((x, y))[2]) + abs(
-                    img1.getpixel((nx, ny))[3] - img2.getpixel((x, y))[3]
+                diff_not_switched = (
+                    abs(img1.getpixel((nx, ny))[0] - img2.getpixel((x, y))[0])
+                    + abs(img1.getpixel((nx, ny))[1] - img2.getpixel((x, y))[1])
+                    + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((x, y))[2])
+                    + abs(img1.getpixel((nx, ny))[3] - img2.getpixel((x, y))[3])
                 )
-                diff_switched = abs(img1.getpixel((nx, ny))[0] - img2.getpixel((nx, ny))[0]) + abs(
-                    img1.getpixel((nx, ny))[1] - img2.getpixel((nx, ny))[1]
-                ) + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((nx, ny))[2]) + abs(
-                    img1.getpixel((nx, ny))[3] - img2.getpixel((nx, ny))[3]
+                diff_switched = (
+                    abs(img1.getpixel((nx, ny))[0] - img2.getpixel((nx, ny))[0])
+                    + abs(img1.getpixel((nx, ny))[1] - img2.getpixel((nx, ny))[1])
+                    + abs(img1.getpixel((nx, ny))[2] - img2.getpixel((nx, ny))[2])
+                    + abs(img1.getpixel((nx, ny))[3] - img2.getpixel((nx, ny))[3])
                 )
                 if diff_not_switched > diff_switched and diff_switched < best_diff:
                     best_diff = diff_switched
@@ -293,7 +301,11 @@ def main():
         )
 
         # If nothing changed at all, stop
-        if not changed and new_img_snapshot.tobytes() == img1.tobytes() and (not serial or doneSteps > img1.width * img1.height):
+        if (
+            not changed
+            and new_img_snapshot.tobytes() == img1.tobytes()
+            and (not serial or doneSteps > img1.width * img1.height)
+        ):
             run_step.set(False)
             print("Image not changing anymore at step", doneSteps)
             step_toggle_button.configure(text="Start")
@@ -329,9 +341,7 @@ def main():
         next_pending = set()
         if not serial:
             for cx, cy in changed:
-                for pos in get_positions_in_radius(
-                    cx, cy, img1.width, img1.height
-                ):
+                for pos in get_positions_in_radius(cx, cy, img1.width, img1.height):
                     next_pending.add(pos)
         else:
             first_pending = next(iter(pending_set), None)
@@ -447,7 +457,7 @@ def main():
     stepDisplay = CTkEntry(frame)
     rc()
     stepDisplay.grid(row=row, column=col)
-    
+
     step_button = CTkButton(frame, text="Step", command=step)
     rc(True)
     step_button.grid(row=row, column=col)
@@ -591,6 +601,7 @@ def main():
     select_img2_button.grid(row=row, column=col)
 
     if selection in ["r", "r2"]:
+
         def pick_random_img1():
             nonlocal img1, filetypes, pending_set, possiblechoices, possibleFirstChoices, img1, img2, img1_path
             if selection == "r":
@@ -644,7 +655,7 @@ def main():
         )
         rc()
         pick_random_img2_button.grid(row=row, column=col)
-    
+
     def open_img1():
         nonlocal img1
         if img1:
@@ -662,42 +673,64 @@ def main():
     open_img2_button = CTkButton(frame, text="Open img2", command=open_img2)
     rc()
     open_img2_button.grid(row=row, column=col)
-    
-    def sprout(x=random.randint(0, img1.width - 1), y=random.randint(0, img1.height - 1)):
+
+    def sprout(
+        x=random.randint(0, img1.width - 1), y=random.randint(0, img1.height - 1)
+    ):
         """empty pending set and put in only one random pixel"""
         nonlocal pending_set
         pending_set.clear()
         pending_set.add((x, y))
         toggle_step()
+
     sprout_button = CTkButton(frame, text="Sprout", command=sprout)
     rc(True)
     sprout_button.grid(row=row, column=col)
-    
+
     def customSprout():
-        y = simpledialog.askinteger("Custom Sprout", "Height", minvalue=0, maxvalue=img1.height - 1, initialvalue=img1.height // 2)
-        x = simpledialog.askinteger("Custom Sprout", "Width", minvalue=0, maxvalue=img1.width - 1, initialvalue=img1.width // 2)
+        y = simpledialog.askinteger(
+            "Custom Sprout",
+            "Height",
+            minvalue=0,
+            maxvalue=img1.height - 1,
+            initialvalue=img1.height // 2,
+        )
+        x = simpledialog.askinteger(
+            "Custom Sprout",
+            "Width",
+            minvalue=0,
+            maxvalue=img1.width - 1,
+            initialvalue=img1.width // 2,
+        )
         if x and y:
             sprout(x, y)
+
     custom_button = CTkButton(frame, text="Custom Sprout", command=customSprout)
     rc()
     custom_button.grid(row=row, column=col)
-    
+
     def pendAll():
         nonlocal pending_set
-        pending_set = set(
-            (x, y) for x in range(img1.width) for y in range(img1.height)
-        )
+        pending_set = set((x, y) for x in range(img1.width) for y in range(img1.height))
+
     pendAll_button = CTkButton(frame, text="Pend All", command=pendAll)
     rc(True)
     pendAll_button.grid(row=row, column=col)
-    
+
     def toggleSerial():
         global serial
         serial = not serial
-        toggleSerial_button.configure(text="Disable Serial" if serial else "Enable Serial")
+        toggleSerial_button.configure(
+            text="Disable Serial" if serial else "Enable Serial"
+        )
         if serial:
             sprout(0, 0)
-    toggleSerial_button = CTkButton(frame, text="Toggle Serial", command=toggleSerial)
+
+    toggleSerial_button = CTkButton(
+        frame,
+        text="Disable Serial" if serial else "Enable Serial",
+        command=toggleSerial,
+    )
     rc()
     toggleSerial_button.grid(row=row, column=col)
 

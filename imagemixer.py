@@ -550,6 +550,7 @@ def main():
         if img1_path:
             print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
+            img2 = Image.open(img2_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
             min_width = min(min_width, max_width)
@@ -598,6 +599,7 @@ def main():
                 img1_path = random.choice(possibleFirstChoices)
             print("Img1:", img1_path)
             img1 = Image.open(img1_path).convert("RGBA")
+            img2 = Image.open(img2_path).convert("RGBA")
             min_width = min(img1.width, img2.width)
             min_height = min(img1.height, img2.height)
             min_width = min(min_width, max_width)

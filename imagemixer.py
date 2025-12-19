@@ -304,10 +304,18 @@ def main():
         if (
             not changed
             and new_img_snapshot.tobytes() == img1.tobytes()
-            and (not serial or doneSteps > img1.width * img1.height)
+            and doneSteps > minSteps
         ):
             run_step.set(False)
             print("Image not changing anymore at step", doneSteps)
+            step_toggle_button.configure(text="Start")
+            duration = time.time() - start_time
+            print(f"Processing took {duration:.2f} seconds")
+            return
+        
+        if doneSteps > maxSteps:
+            run_step.set(False)
+            print("Exceeded max steps.")
             step_toggle_button.configure(text="Start")
             duration = time.time() - start_time
             print(f"Processing took {duration:.2f} seconds")
@@ -344,16 +352,13 @@ def main():
                 for pos in get_positions_in_radius(cx, cy, img1.width, img1.height):
                     next_pending.add(pos)
         else:
-            first_pending = next(iter(pending_set), None)
-            if first_pending is None:
-                next_pending = set()
-            elif best:
+            if best:
                 next_pending = set((x, y) for x, y in best)
             else:
-                x, y = first_pending
-                x = (x + stepX) % img1.width
-                y = (y + (x == 0) * stepY) % img1.height
-                next_pending = set([(x, y)])
+                for x, y in pending_set:
+                    x = (x + stepX) % img1.width
+                    y = (y + (x == 0) * stepY) % img1.height
+                    next_pending.add((x, y))
         pending_set = next_pending
 
     run_step = BooleanVar(value=False)
@@ -675,9 +680,13 @@ def main():
     open_img2_button.grid(row=row, column=col)
 
     def sprout(
-        x=random.randint(0, img1.width - 1), y=random.randint(0, img1.height - 1)
+        x=None, y=None
     ):
         """empty pending set and put in only one random pixel"""
+        if x == None:
+            x = random.randint(0, img1.width - 1)
+        if y == None:
+            y = random.randint(0, img1.height - 1)
         nonlocal pending_set
         pending_set.clear()
         pending_set.add((x, y))
@@ -710,7 +719,7 @@ def main():
     custom_button.grid(row=row, column=col)
 
     def pendAll():
-        nonlocal pending_set
+        global pending_set
         pending_set = set((x, y) for x in range(img1.width) for y in range(img1.height))
 
     pendAll_button = CTkButton(frame, text="Pend All", command=pendAll)
@@ -718,13 +727,15 @@ def main():
     pendAll_button.grid(row=row, column=col)
 
     def toggleSerial():
-        global serial
+        global serial, minSteps, maxSteps
         serial = not serial
+        if serial:
+            minSteps = img1.width * img1.height
+        else:
+            minSteps = 0
         toggleSerial_button.configure(
             text="Disable Serial" if serial else "Enable Serial"
         )
-        if serial:
-            sprout(0, 0)
 
     toggleSerial_button = CTkButton(
         frame,
@@ -733,6 +744,35 @@ def main():
     )
     rc()
     toggleSerial_button.grid(row=row, column=col)
+    
+    def pendCol():
+        nonlocal pending_set, doneSteps
+        global minSteps, maxSteps
+        doneSteps = 0
+        minSteps = img1.width
+        maxSteps = img1.width
+        pending_set = set((0, y) for y in range(img1.height))
+
+    rowSerial_button = CTkButton(
+        frame,
+        text="Pend Left Column",
+        command=pendCol,
+    )
+    rc(True)
+    rowSerial_button.grid(row=row, column=col)
+    
+    def unlimit():
+        global minSteps, maxSteps
+        minSteps = 0
+        maxSteps = 1e99
+
+    unlimit_button = CTkButton(
+        frame,
+        text="Remove Limits",
+        command=unlimit,
+    )
+    rc()
+    unlimit_button.grid(row=row, column=col)
 
     rc(True)
     imgRow, imgCol = row, col
@@ -749,6 +789,8 @@ if __name__ == "__main__":
     stepY = 1  # ... serial mode
     swap = False
     serial = False
+    minSteps = 0
+    maxSteps = 1e99
     max_height = 500
     max_width = max_height
     main()

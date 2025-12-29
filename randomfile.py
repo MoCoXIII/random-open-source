@@ -216,7 +216,7 @@ match mode:
                 x = (screen_w - img_w) // 2
                 y = (screen_h - img_h) // 2
                 current_video.draw(screen, (x, y))
-                if autoAdvance and current_video.frame >= current_video.frame_count - 1:
+                if autoAdvance and (current_video.frame >= current_video.frame_count - current_video.frame_rate // 10 or (not current_video.active and not current_video.paused)):
                     screen.blit(pygame.font.Font(None, 24).render(f"Proceeding in {((advanceVideo - advanceTimer)/60):.2f} seconds", True, (255, 255, 255), (0, 0, 0)), (10, 100))
                     advanceTimer += 1
                     if advanceTimer >= advanceVideo:

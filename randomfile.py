@@ -29,10 +29,16 @@ match mode:
         videoExtensions = [".webm", ".mp4", ".gif", ".mov"]
         allExtensions = imageExtensions + videoExtensions
         wantedExtensions = None
-        if wantedExtensions:
-            files = [f"{r}/{f}" for r, d, f in os.walk(folder) for f in f if f.endswith(tuple(wantedExtensions))]
-        else:
-            files = [f"{r}/{f}" for r, d, f in os.walk(folder) for f in f]
+        files = []
+        def populate_files(wantedExtensions=None):
+            files.clear()
+            for r, d, f in os.walk(folder):
+                for file in f:
+                    if wantedExtensions is None or file.endswith(tuple(wantedExtensions)):
+                        files.append(f"{r}/{file}")
+
+        populate_thread = threading.Thread(target=populate_files, args=(wantedExtensions,))
+        populate_thread.start()
         import pygame
         import pyvidplayer2
 

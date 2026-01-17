@@ -85,15 +85,13 @@ def draw():
     time.sleep(3)
 
     last_color = None
-    stepX = 15
-    stepY = 15
+    stepX = 5
+    stepY = 5
 
+    lines = []
     for y in range(0, height, stepY):
-        # for x in range(0, width, step):
         x = 0
-        pyautogui.moveTo(left + x, top + y, duration=0)
         while x < width:
-            run_start = x
             px = pixels[x, y]
             if px[3] == 0:  # completely transparent
                 x += stepX
@@ -101,6 +99,7 @@ def draw():
             cx, cy, palette_color = closest_palette_color(px, colors)
             nx, ny, nextColor = closest_palette_color(pixels[x, y], colors)
             sameColor = nextColor == palette_color
+            run_start = x
             while x < width and sameColor:
                 x += stepX
                 try:
@@ -108,26 +107,31 @@ def draw():
                 except IndexError:
                     break
                 sameColor = nextColor == palette_color
+            lines.append(
+                (
+                    (cx, cy, palette_color),
+                    (left + run_start, top + y, left + x - stepX, top + y),
+                )
+            )
 
-            # Select color only if it changed
-            if last_color != palette_color:
-                pyautogui.click(cx, cy, duration=0)
-                pyautogui.click(left + run_start, top + y)
-                # pyautogui.click(left + x, top + y)
-                last_color = palette_color
+    lines.sort(key=lambda l: (l[1][2] - l[1][0], l[0][2]), reverse=True)
+    last_color = None
+    for color, (x1, y1, x2, y2) in lines:
+        if color != last_color:
+            last_color = color
+            pyautogui.click(color[0], color[1], duration=0)
+        pyautogui.click(x1, y1, duration=0)
+        pyautogui.mouseDown()
+        pyautogui.moveTo(x2, y2, duration=0)
+        pyautogui.mouseUp()
 
-            pyautogui.mouseDown()
-            pyautogui.moveTo(left + x - stepX, top + y, duration=0)
-            pyautogui.mouseUp()
-            # pyautogui.click(left + x, top + y)
+        # emergency stop
+        if keyboard.is_pressed("esc"):
+            print("Stopped")
+            global running
+            running = False
+            return
 
-            # emergency stop
-            if keyboard.is_pressed("esc"):
-                print("Stopped")
-                global running
-                running = False
-                return
-    
     running = False
 
 while running:

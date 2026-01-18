@@ -1,4 +1,5 @@
 import math
+from tkinter import simpledialog
 import pyautogui
 import time
 import keyboard
@@ -161,8 +162,20 @@ keyboard.on_release_key("5", preview)
 
 stepX = 5
 stepY = 5
+
+
+def set_step_size(e):
+    global stepX, stepY
+    stepX, stepY = map(
+        int,
+        str(simpledialog.askstring("Step size", "Enter step size (x,y):")).split(","),
+    )
+
+
 print("draw with 6")
 keyboard.on_release_key("6", draw)
 
+print("set step size with 7")
+keyboard.on_release_key("7", set_step_size)
 while running:
     time.sleep(1)

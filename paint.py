@@ -6,8 +6,8 @@ import keyboard
 import tkinter.filedialog
 from PIL import Image
 
-stepX = 1
-stepY = 1
+stepX = 10
+stepY = 10
 avgStep = (stepX + stepY) // 2
 
 
@@ -100,12 +100,19 @@ def draw(e):
     lines = getLines()
 
     lines.sort(
-        key=lambda l: ((l[1][2] - l[1][0]) ** 2 + (l[1][3] - l[1][1]) ** 2, l[0][2]),
+        key=lambda l: (
+            (l[1][2] - l[1][0]) ** 2 + (l[1][3] - l[1][1]) ** 2,
+            # l[0][2]
+        ),
         reverse=True,
     )
     last_color = None
     pause = True
-    for color, (x1, y1, x2, y2) in lines:
+    for i, (color, (x1, y1, x2, y2)) in enumerate(lines):
+        print(
+            f"Drawing line {i}/{len(lines)} ({(i/len(lines)*100):.2f}%)                                                         ",
+            end="\r",
+        )
         if color != last_color:
             last_color = color
             pyautogui.click(color[0], color[1], duration=0, _pause=pause)
@@ -126,6 +133,9 @@ def contourLines(min_length=5, max_deviation=avgStep):
     Returns a list of contour line segments:
     [(color, (x1, y1, x2, y2)), ...]
     """
+
+    import math
+    
     NEIGHBORS = [
         (-1, -1),
         (0, -1),
@@ -137,19 +147,27 @@ def contourLines(min_length=5, max_deviation=avgStep):
         (1, 1),
     ]
 
+    # 4-connected
+    # NEIGHBORS = [
+    #     (-1, 0),
+    #     (1, 0),
+    #     (0, -1),
+    #     (0, 1),
+    # ]
+
     w, h = targetimg.size
     pixels = targetimg.load()
 
-    # Map every pixel to its closest palette color
+    # Full-resolution palette map
     palette_map = [
-        [closest_palette_color(pixels[x, y], colors) for x in range(0, w, stepX)]
-        for y in range(0, h, stepY)
+        [closest_palette_color(pixels[x, y], colors) for x in range(w)]
+        for y in range(h)
     ]
 
-    # Track visited boundary *edges*
     visited_edge = set()
-
     lines = []
+
+    BRUSH_OFFSET = max(stepX, stepY) * 0.5
 
     def distance_point_to_line(px, py, x1, y1, x2, y2):
         if x1 == x2 and y1 == y2:
@@ -158,25 +176,23 @@ def contourLines(min_length=5, max_deviation=avgStep):
         den = math.hypot(y2 - y1, x2 - x1)
         return num / den
 
-    for y in range(0, h, stepY):
-        for x in range(0, w, stepX):
-            base_color = palette_map[y // stepY][x // stepX]
+    for y in range(h):
+        for x in range(w):
+            base_color = palette_map[y][x]
 
-            # Look for boundary directions
-            for dx, dy in NEIGHBORS:
-                nx, ny = x + dx * stepX, y + dy * stepY
+            for bdx, bdy in NEIGHBORS:
+                nx, ny = x + bdx, y + bdy
                 if not (0 <= nx < w and 0 <= ny < h):
                     continue
-                if palette_map[ny // stepY][nx // stepX] == base_color:
+                if palette_map[ny][nx] == base_color:
                     continue
 
-                edge_key = (x, y, dx * stepX, dy * stepY)
+                edge_key = (x, y, bdx, bdy)
                 if edge_key in visited_edge:
                     continue
 
-                # Trace one boundary loop
                 contour = []
-                stack = [(x, y, dx * stepX, dy * stepY)]
+                stack = [(x, y, bdx, bdy)]
 
                 while stack:
                     cx, cy, cdx, cdy = stack.pop()
@@ -184,55 +200,85 @@ def contourLines(min_length=5, max_deviation=avgStep):
                     if key in visited_edge:
                         continue
 
-                    nx, ny = cx + cdx, cy + cdy
-                    if not (0 <= nx < w and 0 <= ny < h):
+                    ox, oy = cx + cdx, cy + cdy
+                    if not (0 <= ox < w and 0 <= oy < h):
                         continue
-                    if palette_map[ny // stepY][nx // stepX] == base_color:
+                    if palette_map[oy][ox] == base_color:
                         continue
 
                     visited_edge.add(key)
-                    contour.append((cx, cy))
 
-                    # Walk along the boundary
+                    # Store midpoint AND boundary direction
+                    contour.append((cx + cdx * 0.5, cy + cdy * 0.5, cdx, cdy))
+
                     for ndx, ndy in NEIGHBORS:
-                        tx, ty = cx + ndx * stepX, cy + ndy * stepY
+                        sx, sy = cx + ndx, cy + ndy
+                        if not (0 <= sx < w and 0 <= sy < h):
+                            continue
+                        if palette_map[sy][sx] != base_color:
+                            continue
+
+                        tx, ty = sx + cdx, sy + cdy
                         if not (0 <= tx < w and 0 <= ty < h):
                             continue
-                        if palette_map[ty // stepY][tx // stepX] != base_color:
-                            continue
+                        if palette_map[ty][tx] != base_color:
+                            stack.append((sx, sy, cdx, cdy))
 
-                        ox, oy = tx + cdx, ty + cdy
-                        if not (0 <= ox < w and 0 <= oy < h):
-                            continue
-                        if palette_map[oy // stepY][ox // stepX] != base_color:
-                            stack.append((tx, ty, cdx, cdy))
-
-                # Fit maximal straight segments along this contour
                 if len(contour) < min_length:
                     continue
 
-                contour.sort()  # stabilizes traversal
+                contour.sort(key=lambda p: (p[0], p[1]))
 
                 i = 0
                 while i < len(contour) - min_length:
-                    x1, y1 = contour[i]
-                    x2, y2 = contour[i + 1]
+                    x1, y1, _, _ = contour[i]
+                    x2, y2, _, _ = contour[i + 1]
 
                     j = i + 2
                     while j < len(contour):
-                        px, py = contour[j]
-                        d = distance_point_to_line(px, py, x1, y1, x2, y2)
-                        if d > max_deviation:
+                        px, py, _, _ = contour[j]
+                        if (
+                            distance_point_to_line(px, py, x1, y1, x2, y2)
+                            > max_deviation
+                        ):
                             break
                         x2, y2 = px, py
                         j += 1
 
                     length = math.hypot(x2 - x1, y2 - y1)
                     if length >= min_length:
-                        lines.append(
-                            (base_color, (x1 + left, y1 + top, x2 + left, y2 + top))
-                        )
+                        # ---- CORRECT NORMAL COMPUTATION ----
+                        dx = x2 - x1
+                        dy = y2 - y1
+                        ln = math.hypot(dx, dy)
+                        if ln == 0:
+                            i = j
+                            continue
 
+                        # perpendicular to the LINE
+                        nx = -dy / ln
+                        ny = dx / ln
+
+                        # Determine correct side using boundary direction
+                        _, _, bdx0, bdy0 = contour[i]
+                        if nx * bdx0 + ny * bdy0 < 0:
+                            nx = -nx
+                            ny = -ny
+
+                        ox = nx * BRUSH_OFFSET
+                        oy = ny * BRUSH_OFFSET
+
+                        lines.append(
+                            (
+                                base_color,
+                                (
+                                    x1 + ox + left,
+                                    y1 + oy + top,
+                                    x2 + ox + left,
+                                    y2 + oy + top,
+                                ),
+                            )
+                        )
                     i = j
 
     return lines

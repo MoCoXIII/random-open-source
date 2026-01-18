@@ -6,22 +6,15 @@ import tkinter.filedialog
 from PIL import Image
 
 running = True
-canvas = (0, 0, 0, 0)
-targetPath = tkinter.filedialog.askopenfilename(
-    filetypes=[("Images", [".png", ".jpg", ".jpeg", ".webp"])]
-)
-target = Image.open(targetPath)
+
 
 def takeScreenshot():
     global img
     img = pyautogui.screenshot(allScreens=True)
 
-print("Take screenshot with 0")
-keyboard.add_hotkey('0', takeScreenshot)
 
-print("hover color selection boxes and press 1, 2 when finished")
-# wait for user to click and record where the click happened
-colors = []
+print("Take screenshot with 0")
+keyboard.add_hotkey("0", takeScreenshot)
 
 
 def addColor(e):
@@ -30,29 +23,53 @@ def addColor(e):
     colors.append((x, y, img.getpixel((x, y))))
 
 
+colors = []
+print("add colors with 1")
 keyboard.hook_key("1", addColor)
 
 
-def sizeCanvas(e):
-    keyboard.unhook_all()
-    print("select bottom left corner of canvas (3)")
-    # wait for numpad 3 to be pressed
-    while True:
-        if keyboard.is_pressed("3"):
-            break
+def setBl(e):
     bl = pyautogui.position()
-    print("select top right corner of canvas (4)")
-    # wait for numpad 4 to be pressed
-    while True:
-        if keyboard.is_pressed("4"):
-            break
+    global canvas
+    canvas[0] = bl[0]
+    canvas[3] = bl[1]
+    updateDimensions()
+
+
+def setTr(e):
     tr = pyautogui.position()
     global canvas
-    canvas = (bl[0], tr[1], tr[0], bl[1])  # left, top, right, bottom
-    draw()
+    canvas[1] = tr[1]
+    canvas[2] = tr[0]
+    updateDimensions()
 
 
-keyboard.hook_key("2", sizeCanvas)
+def updateDimensions():
+    global width, height, canvas
+    left, top, right, bottom = canvas
+    width = right - left
+    height = bottom - top
+
+
+canvas = [0, 0, 0, 0]
+print("set canvas bottom left with 2")
+keyboard.hook_key("2", setBl)
+print("set canvas top right with 3")
+keyboard.hook_key("3", setTr)
+
+
+def setTargetPath():
+    global targetPath, target, img, pixels
+    targetPath = tkinter.filedialog.askopenfilename(
+        filetypes=[("Images", [".png", ".jpg", ".jpeg", ".webp"])]
+    )
+    target = Image.open(targetPath)
+    img = target.convert("RGBA").resize((width, height), Image.Resampling.NEAREST)
+    pixels = img.load()
+
+
+print("Choose image with 4")
+keyboard.add_hotkey("4", setTargetPath)
 
 
 def color_distance(c1, c2):
@@ -70,24 +87,12 @@ def closest_palette_color(pixel, colors):
     return best
 
 
-def draw():
-    global colors, target, canvas
-
+def draw(e):
+    global colors, target, width, height, canvas, pixels
     left, top, right, bottom = canvas
     width = right - left
     height = bottom - top
-
-    # Resize target to canvas size
-    img = target.convert("RGBA").resize((width, height), Image.Resampling.NEAREST)
-    pixels = img.load()
-
-    print("Drawing starts in 3 seconds...")
-    time.sleep(3)
-
     last_color = None
-    stepX = 5
-    stepY = 5
-
     lines = []
     for y in range(0, height, stepY):
         x = 0
@@ -119,11 +124,11 @@ def draw():
     for color, (x1, y1, x2, y2) in lines:
         if color != last_color:
             last_color = color
-            pyautogui.click(color[0], color[1], duration=0, _pause=False)
-        pyautogui.click(x1, y1, duration=0, _pause=False)
-        pyautogui.mouseDown(_pause=False)
-        pyautogui.moveTo(x2, y2, duration=0, _pause=False)
-        pyautogui.mouseUp(_pause=False)
+            pyautogui.click(color[0], color[1], duration=0, _pause=True)
+        pyautogui.click(x1, y1, duration=0, _pause=True)
+        pyautogui.mouseDown(_pause=True)
+        pyautogui.moveTo(x2, y2, duration=0, _pause=True)
+        pyautogui.mouseUp(_pause=True)
 
         # emergency stop
         if keyboard.is_pressed("esc"):
@@ -133,6 +138,31 @@ def draw():
             return
 
     running = False
+
+
+def preview(e):
+    global height, width, stepX, stepY, pixels
+    img_preview = Image.new("RGBA", (width // stepX, height // stepY), "white")
+    for y in range(0, height, stepY):
+        for x in range(0, width, stepX):
+            px = pixels[x, y]
+            if px[3] == 0:  # completely transparent
+                continue
+            cx, cy, palette_color = closest_palette_color(px, colors)
+            try:
+                img_preview.putpixel((x // stepX, y // stepY), palette_color)
+            except IndexError:
+                pass
+    img_preview.show()
+
+
+print("preview with 5")
+keyboard.hook_key("5", preview)
+
+stepX = 10
+stepY = 10
+print("draw with 6")
+keyboard.hook_key("6", draw)
 
 while running:
     time.sleep(1)

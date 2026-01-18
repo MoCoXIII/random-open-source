@@ -119,11 +119,11 @@ def draw():
     for color, (x1, y1, x2, y2) in lines:
         if color != last_color:
             last_color = color
-            pyautogui.click(color[0], color[1], duration=0)
-        pyautogui.click(x1, y1, duration=0)
-        pyautogui.mouseDown()
-        pyautogui.moveTo(x2, y2, duration=0)
-        pyautogui.mouseUp()
+            pyautogui.click(color[0], color[1], duration=0, _pause=False)
+        pyautogui.click(x1, y1, duration=0, _pause=False)
+        pyautogui.mouseDown(_pause=False)
+        pyautogui.moveTo(x2, y2, duration=0, _pause=False)
+        pyautogui.mouseUp(_pause=False)
 
         # emergency stop
         if keyboard.is_pressed("esc"):

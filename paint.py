@@ -8,24 +8,24 @@ from PIL import Image
 running = True
 
 
-def takeScreenshot():
-    global img
-    img = pyautogui.screenshot(allScreens=True)
+def takeScreenshot(e):
+    global screenimg
+    screenimg = pyautogui.screenshot(allScreens=True)
 
 
 print("Take screenshot with 0")
-keyboard.add_hotkey("0", takeScreenshot)
+keyboard.on_release_key("0", takeScreenshot)
 
 
 def addColor(e):
     global colors
     x, y = pyautogui.position()
-    colors.append((x, y, img.getpixel((x, y))))
+    colors.append((x, y, screenimg.getpixel((x, y))))
 
 
 colors = []
 print("add colors with 1")
-keyboard.hook_key("1", addColor)
+keyboard.on_release_key("1", addColor)
 
 
 def setBl(e):
@@ -53,23 +53,23 @@ def updateDimensions():
 
 canvas = [0, 0, 0, 0]
 print("set canvas bottom left with 2")
-keyboard.hook_key("2", setBl)
+keyboard.on_release_key("2", setBl)
 print("set canvas top right with 3")
-keyboard.hook_key("3", setTr)
+keyboard.on_release_key("3", setTr)
 
 
-def setTargetPath():
-    global targetPath, target, img, pixels
+def setTargetPath(e):
+    global targetPath, target, targetimg, pixels
     targetPath = tkinter.filedialog.askopenfilename(
         filetypes=[("Images", [".png", ".jpg", ".jpeg", ".webp"])]
     )
     target = Image.open(targetPath)
-    img = target.convert("RGBA").resize((width, height), Image.Resampling.NEAREST)
-    pixels = img.load()
+    targetimg = target.convert("RGBA").resize((width, height), Image.Resampling.NEAREST)
+    pixels = targetimg.load()
 
 
 print("Choose image with 4")
-keyboard.add_hotkey("4", setTargetPath)
+keyboard.on_release_key("4", setTargetPath)
 
 
 def color_distance(c1, c2):
@@ -157,12 +157,12 @@ def preview(e):
 
 
 print("preview with 5")
-keyboard.hook_key("5", preview)
+keyboard.on_release_key("5", preview)
 
-stepX = 10
-stepY = 10
+stepX = 5
+stepY = 5
 print("draw with 6")
-keyboard.hook_key("6", draw)
+keyboard.on_release_key("6", draw)
 
 while running:
     time.sleep(1)

@@ -271,7 +271,29 @@ match mode:
                         try:
                             if current_video:
                                 current_video.close()
-                            newPath = shutil.move(current_file, newFolder)
+                            newPath = os.path.join(
+                                newFolder, os.path.basename(current_file)
+                            )
+                            while os.path.exists(newPath):
+                                # ask the user if they want to overwrite the other image
+                                # or if they want to keep appending random symbols to the file name
+                                # until it doesn't already exist in the destination folder
+                                overwrite = tkinter.messagebox.askyesnocancel(
+                                    "File already exists",
+                                    f"File {os.path.basename(current_file)} already exists in {newFolder}. Overwrite?",
+                                )
+                                if overwrite is True:
+                                    break
+                                elif overwrite is False:
+                                    # keep appending random symbols to the file name
+                                    newPath = os.path.join(
+                                        newFolder,
+                                        f"{os.path.splitext(os.path.basename(current_file))[0]}_{random.randint(1000, 9999)}{os.path.splitext(os.path.basename(current_file))[1]}",
+                                    )
+                                else:
+                                    # cancel the move
+                                    continue
+                            newPath = shutil.move(current_file, newPath)
                             if doUpdate:
                                 played[played.index(current_file)] = newPath
                             else:

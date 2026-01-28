@@ -16,7 +16,7 @@ if not folder:
 
 def applyImageFilters(img):
     """Applies some modifications to the image (not changing dimensions or color space, assumes RGBA)"""
-    return
+    return img
 
     def closest_palette_color(color):
         palette = [
@@ -69,7 +69,7 @@ match mode:
         imageExtensions = [".png", ".jpg", ".jpeg", ".webp"]
         videoExtensions = [".webm", ".mp4", ".gif", ".mov"]
         allExtensions = imageExtensions + videoExtensions
-        wantedExtensions = imageExtensions
+        wantedExtensions = None
         files = []
 
         def populate_files(wantedExtensions=None):
@@ -104,6 +104,7 @@ match mode:
 
         showPath = False
         doUpdate = True  # whether to update moved file locations instead of removing them from the playlist
+        cleanFolders = False  # whether to remove empty folders after moving items from there
         alphabetical = False
         autoAdvance = False
         advanceTimer = 0  # frame counter
@@ -234,6 +235,8 @@ match mode:
                         showPath = not showPath
                     elif event.key == pygame.K_u:
                         doUpdate = not doUpdate
+                    elif event.key == pygame.K_c:
+                        cleanFolders = not cleanFolders
                     elif event.key == pygame.K_i:
                         # advance, but skip to next image (ignore videos)
                         advance(False)
@@ -275,6 +278,15 @@ match mode:
                                 played.remove(current_file)
                                 update()
                             # tkinter.messagebox.showinfo("Moved", f"Moved {current_file} to {newFolder}")
+                            
+                            # here, the move was successful, so we may check if the folder we removed the file from is now empty
+                            # if so, delete it
+                            if cleanFolders and not os.listdir(os.path.dirname(current_file)):
+                                tkinter.messagebox.showinfo(
+                                    "Empty folder",
+                                    f"Deleting empty folder {os.path.dirname(current_file)}",
+                                )
+                                os.rmdir(os.path.dirname(current_file))
                         except OSError as e:
                             tkinter.messagebox.showerror(
                                 "Move failed", f"Failed to move {current_file}: {e}"
@@ -367,6 +379,14 @@ match mode:
                 screen.blit(
                     pygame.font.Font(None, 24).render(
                         "Update: OFF", True, (255, 255, 255), (0, 0, 0)
+                    ),
+                    (10, y),
+                )
+            if cleanFolders:
+                y += 30
+                screen.blit(
+                    pygame.font.Font(None, 24).render(
+                        "Clean Folders: ON", True, (255, 255, 255), (0, 0, 0)
                     ),
                     (10, y),
                 )

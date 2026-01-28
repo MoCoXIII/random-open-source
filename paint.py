@@ -6,8 +6,8 @@ import keyboard
 import tkinter.filedialog
 from PIL import Image
 
-stepX = 10
-stepY = 10
+stepX = 15
+stepY = 15
 avgStep = (stepX + stepY) // 2
 
 
@@ -261,7 +261,7 @@ def contourLines(min_length=5, max_deviation=avgStep):
 
                         # Determine correct side using boundary direction
                         _, _, bdx0, bdy0 = contour[i]
-                        if nx * bdx0 + ny * bdy0 < 0:
+                        if nx * bdx0 + ny * bdy0 > 0:
                             nx = -nx
                             ny = -ny
 

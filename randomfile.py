@@ -298,17 +298,28 @@ match mode:
                                 played[played.index(current_file)] = newPath
                             else:
                                 played.remove(current_file)
-                                update()
                             # tkinter.messagebox.showinfo("Moved", f"Moved {current_file} to {newFolder}")
                             
-                            # here, the move was successful, so we may check if the folder we removed the file from is now empty
-                            # if so, delete it
-                            if cleanFolders and not os.listdir(os.path.dirname(current_file)):
-                                tkinter.messagebox.showinfo(
-                                    "Empty folder",
-                                    f"Deleting empty folder {os.path.dirname(current_file)}",
-                                )
-                                os.rmdir(os.path.dirname(current_file))
+                            def deleteEmptyFolders(f):
+                                if not os.path.isdir(f):
+                                    return
+                                if f == folder:
+                                    return
+                                if not os.listdir(f):
+                                    tkinter.messagebox.showinfo(
+                                        "Empty folder",
+                                        f"Deleting empty folder {f}",
+                                    )
+                                    os.rmdir(f)
+                                    deleteEmptyFolders(os.path.dirname(f))
+                                else:
+                                    for subfolder in os.listdir(f):
+                                        deleteEmptyFolders(os.path.join(f, subfolder))
+
+                            if cleanFolders:
+                                deleteEmptyFolders(os.path.dirname(current_file))
+                            
+                            update()
                         except OSError as e:
                             tkinter.messagebox.showerror(
                                 "Move failed", f"Failed to move {current_file}: {e}"

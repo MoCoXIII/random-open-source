@@ -3,38 +3,51 @@ import random
 import shutil
 import subprocess
 import threading
+import time
 import tkinter.messagebox
 import tkinter.filedialog
 import tkinter.simpledialog
 from PIL import Image
 
 mode = "custom"
-folder = tkinter.filedialog.askdirectory(title="Select folder to play files from")
-if not folder:
+folders = []
+folder = ""
+if not folders:
+    folder = tkinter.filedialog.askdirectory(title=f"Select folder {len(folders) + 1} to play files from")
+    while folder:
+        folders.append(folder)
+        folder = tkinter.filedialog.askdirectory(title=f"Select folder {len(folders) + 1} to play files from")
+if not folders:
     exit()
 
+stepX = 1
+stepY = 1
 
 def applyImageFilters(img):
     """Applies some modifications to the image (not changing dimensions or color space, assumes RGBA)"""
-    return img
+    if not applyFilters:
+        return img
 
     def closest_palette_color(color):
+        def rgb(hex):
+            """Converts a hex string to an RGB tuple"""
+            hex = hex.lstrip('#')
+            return tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
         palette = [
-            (0, 0, 0),
-            (255, 255, 255),
-            (255, 0, 0),
-            (0, 255, 0),
-            (28, 99, 253),
-            (252, 234, 2),
-            (255, 49, 221),
-            (140, 70, 23)
+            rgb("000000"),
+            rgb("FFFFFF"),
+            rgb("FF0000"),
+            rgb("00FF00"),
+            rgb("1C63FF"),
+            rgb("FFEB00"),
+            rgb("FF32DC"),
+            rgb("8B4516"),
         ]
         closest_color = min(
             palette, key=lambda c: sum((c[i] - color[i]) ** 2 for i in range(3))
         )
         return closest_color
 
-    stepX, stepY = 5, 5
     img_pil = Image.frombytes(
         "RGBA", img.get_size(), pygame.image.tostring(img, "RGBA", False)
     )
@@ -53,6 +66,62 @@ def applyImageFilters(img):
     return pygame.image.fromstring(img_pil.tobytes(), img_pil.size, "RGBA")
 
 
+def moveFile(current_file, newPath):
+    newFolder = os.path.dirname(newPath)
+    if current_video:
+        current_video.close()
+    while os.path.exists(newPath):
+        # if the file destination is its origin folder, ignore
+        if newFolder == os.path.dirname(current_file):
+            break
+        # ask the user if they want to overwrite the other image
+        # or if they want to keep appending random symbols to the file name
+        # until it doesn't already exist in the destination folder
+        overwrite = tkinter.messagebox.askyesnocancel(
+            "File already exists",
+            f"File {os.path.basename(current_file)} already exists in {newFolder}. Overwrite?",
+        )
+        if overwrite is True:
+            break
+        elif overwrite is False:
+            # keep appending random symbols to the file name
+            newPath = os.path.join(
+                newFolder,
+                f"{os.path.splitext(os.path.basename(current_file))[0]}{random.randint(0, 9)}{os.path.splitext(os.path.basename(current_file))[1]}",
+            )
+        else:
+            # cancel the move
+            continue
+    newPath = shutil.move(current_file, newPath)
+    if doUpdate:
+        played[played.index(current_file)] = newPath
+    else:
+        played.remove(current_file)
+    # tkinter.messagebox.showinfo("Moved", f"Moved {current_file} to {newFolder}")
+
+    def deleteEmptyFolders(f):
+        if not os.path.isdir(f):
+            return
+        if f == folder:
+            return
+        if not os.listdir(f):
+            clear = tkinter.messagebox.askokcancel(
+                "Empty folder",
+                f"Deleting empty folder {f}",
+            )
+            if clear:
+                os.rmdir(f)
+                deleteEmptyFolders(os.path.dirname(f))
+        else:
+            for subfolder in os.listdir(f):
+                deleteEmptyFolders(os.path.join(f, subfolder))
+
+    if cleanFolders:
+        deleteEmptyFolders(os.path.dirname(current_file))
+
+    update()
+
+
 match mode:
     case "open":
         files = [f"{r}/{f}" for r, d, f in os.walk(folder) for f in f]
@@ -66,27 +135,34 @@ match mode:
             files.remove(file)
             input("Enter to open another")
     case "custom":
-        imageExtensions = [".png", ".jpg", ".jpeg", ".webp"]
-        videoExtensions = [".webm", ".mp4", ".gif", ".mov"]
-        allExtensions = imageExtensions + videoExtensions
+        imageExtensions = (".png", ".jpg", ".jpeg", ".webp")
+        videoExtensions = (".webm", ".mp4", ".gif", ".mov")
+        audioExtensions = (".mp3", ".m4a", ".opus", ".ogg", ".wav")
+        allExtensions = imageExtensions + videoExtensions + audioExtensions
         wantedExtensions = None
         files = []
 
         def populate_files(wantedExtensions=None):
             files.clear()
-            for r, d, f in os.walk(folder):
-                for file in f:
-                    if wantedExtensions is None or file.endswith(
-                        tuple(wantedExtensions)
-                    ):
-                        files.append(f"{r}/{file}")
+            print("Loading Files...")
+            count = 0
+            start = time.time()
+            for folder in folders:
+                for r, d, f in os.walk(folder):
+                    for file in f:
+                        if wantedExtensions is None or file.endswith(
+                            tuple(wantedExtensions)
+                        ):
+                            files.append(f"{r}/{file}")
+                            count += 1
+            print(f"Done loading {count} files in {time.time() - start} seconds")
 
         populate_thread = threading.Thread(
             target=populate_files, args=(wantedExtensions,)
         )
-        populate_thread.start()
         import pygame
         import pyvidplayer2
+        populate_thread.start()
 
         pygame.init()
         screen_width, screen_height = (
@@ -104,7 +180,11 @@ match mode:
 
         showPath = False
         doUpdate = True  # whether to update moved file locations instead of removing them from the playlist
-        cleanFolders = False  # whether to remove empty folders after moving items from there
+        cleanFolders = (
+            False  # whether to remove empty folders after moving items from there
+        )
+        applyFilters = False
+
         alphabetical = False
         autoAdvance = False
         advanceTimer = 0  # frame counter
@@ -121,27 +201,34 @@ match mode:
             # else:
             #     print(f"Loading {file} ...", end=" ")
             global current_image, current_video, current_file, img_rect, file
-            if file.endswith((".png", ".jpg", ".jpeg", ".webp")):
-                img = pygame.image.load(os.path.join(folder, file))
-                img_w, img_h = img.get_size()
-                scale_factor = min(screen_w / img_w, screen_h / img_h)
-                scaled_img = pygame.transform.scale(
-                    img, (int(img_w * scale_factor), int(img_h * scale_factor))
-                )
-                scaled_img = applyImageFilters(scaled_img)
-                img_rect = scaled_img.get_rect()
-                img_rect.center = (screen_w // 2, screen_h // 2)
-                current_image = scaled_img
-                screen.blit(scaled_img, img_rect)
-            elif file.endswith((".webm", ".mp4", ".gif", ".mov")):
-                current_video = pyvidplayer2.Video(os.path.join(folder, file))
-                img_w, img_h = current_video.current_size
-                scale_factor = min(screen_w / img_w, screen_h / img_h)
-                scaled_w, scaled_h = int(img_w * scale_factor), int(
-                    img_h * scale_factor
-                )
-                current_video.resize((scaled_w, scaled_h))
-                current_video.play()
+            pygame.mixer.music.stop()
+            try:
+                if file.lower().endswith(imageExtensions):
+                    img = pygame.image.load(os.path.join(folder, file))
+                    img_w, img_h = img.get_size()
+                    scale_factor = min(screen_w / img_w, screen_h / img_h)
+                    scaled_img = pygame.transform.scale(
+                        img, (int(img_w * scale_factor), int(img_h * scale_factor))
+                    )
+                    scaled_img = applyImageFilters(scaled_img)
+                    img_rect = scaled_img.get_rect()
+                    img_rect.center = (screen_w // 2, screen_h // 2)
+                    current_image = scaled_img
+                    screen.blit(scaled_img, img_rect)
+                elif file.lower().endswith(videoExtensions):
+                    current_video = pyvidplayer2.Video(os.path.join(folder, file))
+                    img_w, img_h = current_video.current_size
+                    scale_factor = min(screen_w / img_w, screen_h / img_h)
+                    scaled_w, scaled_h = int(img_w * scale_factor), int(
+                        img_h * scale_factor
+                    )
+                    current_video.resize((scaled_w, scaled_h))
+                    current_video.play()
+                elif file.lower().endswith(audioExtensions):
+                    pygame.mixer.music.load(os.path.join(folder, file))
+                    pygame.mixer.music.play()
+            except Exception as e:
+                print(e)
             current_file = file
             # print(f"Done.{" "*((150+21)-len(file))}", end="\r")
 
@@ -237,6 +324,18 @@ match mode:
                         doUpdate = not doUpdate
                     elif event.key == pygame.K_c:
                         cleanFolders = not cleanFolders
+                    elif event.key == pygame.K_g:
+                        applyFilters = not applyFilters
+                    elif event.key == pygame.K_KP6:
+                        stepX += 1
+                    elif event.key == pygame.K_KP4:
+                        stepX -= 1
+                    elif event.key == pygame.K_KP8:
+                        stepY += 1
+                    elif event.key == pygame.K_KP2:
+                        stepY -= 1
+                    elif event.key == pygame.K_KP5:
+                        update()
                     elif event.key == pygame.K_i:
                         # advance, but skip to next image (ignore videos)
                         advance(False)
@@ -257,6 +356,9 @@ match mode:
                         tkinter.filedialog.askdirectory(
                             initialdir=folder, title="Reset default opening location"
                         )
+                    elif event.key == pygame.K_RCTRL:
+                        played.remove(current_file)
+                        update()
                     elif event.key == pygame.K_BACKSPACE:
                         newFolder = (
                             tkinter.filedialog.askdirectory()
@@ -269,57 +371,10 @@ match mode:
                             )
                             continue
                         try:
-                            if current_video:
-                                current_video.close()
                             newPath = os.path.join(
                                 newFolder, os.path.basename(current_file)
                             )
-                            while os.path.exists(newPath):
-                                # ask the user if they want to overwrite the other image
-                                # or if they want to keep appending random symbols to the file name
-                                # until it doesn't already exist in the destination folder
-                                overwrite = tkinter.messagebox.askyesnocancel(
-                                    "File already exists",
-                                    f"File {os.path.basename(current_file)} already exists in {newFolder}. Overwrite?",
-                                )
-                                if overwrite is True:
-                                    break
-                                elif overwrite is False:
-                                    # keep appending random symbols to the file name
-                                    newPath = os.path.join(
-                                        newFolder,
-                                        f"{os.path.splitext(os.path.basename(current_file))[0]}_{random.randint(1000, 9999)}{os.path.splitext(os.path.basename(current_file))[1]}",
-                                    )
-                                else:
-                                    # cancel the move
-                                    continue
-                            newPath = shutil.move(current_file, newPath)
-                            if doUpdate:
-                                played[played.index(current_file)] = newPath
-                            else:
-                                played.remove(current_file)
-                            # tkinter.messagebox.showinfo("Moved", f"Moved {current_file} to {newFolder}")
-                            
-                            def deleteEmptyFolders(f):
-                                if not os.path.isdir(f):
-                                    return
-                                if f == folder:
-                                    return
-                                if not os.listdir(f):
-                                    tkinter.messagebox.showinfo(
-                                        "Empty folder",
-                                        f"Deleting empty folder {f}",
-                                    )
-                                    os.rmdir(f)
-                                    deleteEmptyFolders(os.path.dirname(f))
-                                else:
-                                    for subfolder in os.listdir(f):
-                                        deleteEmptyFolders(os.path.join(f, subfolder))
-
-                            if cleanFolders:
-                                deleteEmptyFolders(os.path.dirname(current_file))
-                            
-                            update()
+                            moveFile(current_file, newPath)
                         except OSError as e:
                             tkinter.messagebox.showerror(
                                 "Move failed", f"Failed to move {current_file}: {e}"
@@ -420,6 +475,14 @@ match mode:
                 screen.blit(
                     pygame.font.Font(None, 24).render(
                         "Clean Folders: ON", True, (255, 255, 255), (0, 0, 0)
+                    ),
+                    (10, y),
+                )
+            if applyFilters:
+                y += 30
+                screen.blit(
+                    pygame.font.Font(None, 24).render(
+                        f"Applying Filters with steps x:{stepX} y:{stepY}", True, (255, 255, 255), (0, 0, 0)
                     ),
                     (10, y),
                 )

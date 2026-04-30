@@ -15,7 +15,8 @@ folder = ""
 if not folders:
     folder = tkinter.filedialog.askdirectory(title=f"Select folder {len(folders) + 1} to play files from")
     while folder:
-        folders.append(folder)
+        recursive = tkinter.messagebox.askyesno("Walk folder?", f"Should the file search in {folder} be recursive?")
+        folders.append((folder, recursive))
         folder = tkinter.filedialog.askdirectory(title=f"Select folder {len(folders) + 1} to play files from")
 if not folders:
     exit()
@@ -147,15 +148,24 @@ match mode:
             print("Loading Files...")
             count = 0
             start = time.time()
-            for folder in folders:
-                for r, d, f in os.walk(folder):
-                    for file in f:
-                        if wantedExtensions is None or file.endswith(
+            for folderpack in folders:
+                folder, recursive = folderpack
+                if recursive:
+                    for r, d, f in os.walk(folder):
+                        for file in f:
+                            count = tryAddFile(wantedExtensions, r, file, count)
+                else:
+                    for file in os.listdir(folder):
+                        count = tryAddFile(wantedExtensions, folder, file, count)
+            print(f"Done loading {count} files in {time.time() - start} seconds")
+
+        def tryAddFile(wantedExtensions, folder, file, count):
+            if wantedExtensions is None or file.endswith(
                             tuple(wantedExtensions)
                         ):
-                            files.append(f"{r}/{file}")
-                            count += 1
-            print(f"Done loading {count} files in {time.time() - start} seconds")
+                files.append(f"{folder}/{file}")
+                count += 1
+            return count
 
         populate_thread = threading.Thread(
             target=populate_files, args=(wantedExtensions,)

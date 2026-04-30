@@ -12,7 +12,7 @@ from tkinter import messagebox, filedialog
 
 # be careful to not delete important files
 
-maxSizeMB = 2
+maxSizeMB = 4
 maxSizeKB = maxSizeMB * 1024
 maxSizeBytes = maxSizeKB * 1024
 

@@ -11,11 +11,13 @@ pattern = r".*\[(.*)\](.*)"
 
 folder = filedialog.askdirectory()
 
-for oldName in os.listdir(folder):
-    match = re.match(pattern, oldName)
-    if match:
-        newName = match.group(1) + match.group(2)
-        if newName:
-            if input(f"{oldName} -> {newName}"):
-                os.rename(os.path.join(folder, oldName), os.path.join(folder, newName))
-                print(f"Renamed {oldName} to {newName}")
+for dirpath, dirnames, filenames in os.walk(folder):
+    for oldName in filenames:
+        match = re.match(pattern, oldName)
+        if match:
+            newName = match.group(1) + match.group(2)
+            if newName:
+                print(dirpath)
+                if input(f"{oldName} -> {newName}"):
+                    os.rename(os.path.join(dirpath, oldName), os.path.join(dirpath, newName))
+                    print(f"Renamed {oldName} to {newName}")

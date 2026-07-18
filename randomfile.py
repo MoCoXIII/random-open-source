@@ -407,41 +407,11 @@ match mode:
             screen_w, screen_h = screen.get_size()
             if current_image:
                 screen.blit(current_image, img_rect)
-                if autoAdvance:
-                    screen.blit(
-                        pygame.font.Font(None, 24).render(
-                            f"Proceeding in {((advanceImage - advanceTimer)/60):.2f} seconds",
-                            True,
-                            (255, 255, 255),
-                            (0, 0, 0),
-                        ),
-                        (10, 100),
-                    )
-                    advanceTimer += 1
-                    if advanceTimer >= advanceImage:
-                        advanceNow = True
             if current_video:
                 img_w, img_h = current_video.current_size  # type: ignore
                 x = (screen_w - img_w) // 2
                 y = (screen_h - img_h) // 2
                 current_video.draw(screen, (x, y))
-                if autoAdvance and (
-                    current_video.frame
-                    >= current_video.frame_count - current_video.frame_rate // 10
-                    or (not current_video.active and not current_video.paused)
-                ):
-                    screen.blit(
-                        pygame.font.Font(None, 24).render(
-                            f"Proceeding in {((advanceVideo - advanceTimer)/60):.2f} seconds",
-                            True,
-                            (255, 255, 255),
-                            (0, 0, 0),
-                        ),
-                        (10, 100),
-                    )
-                    advanceTimer += 1
-                    if advanceTimer >= advanceVideo:
-                        advanceNow = True
             screen.blit(
                 pygame.font.Font(None, 24).render(
                     f"{len(files)}", True, (255, 255, 255), (0, 0, 0)
@@ -455,47 +425,47 @@ match mode:
                 (10, 40),
             )
             # text up to y40 is permanent
-            y = 40
+            y = 40 + 30 # blank line
+
+            def showText(text):
+                global y
+                y += 30
+                screen.blit(
+                    pygame.font.Font(None, 24).render(
+                        f"{text}", True, (255, 255, 255), (0, 0, 0)
+                    ),
+                    (10, y),
+                )
+
+            showText(f"Exit (esc), next (space/d), prev (a)")
+            showText(f"Open file in OS (o), open in explorer (e)")
+            showText(f"Move file (backspace)")
+            showText(f"Update memory (u): {"remove moved from playlist" if not doUpdate else 'keep moved in playlist'}")
+            if current_video:
+                showText(f"Replay (r), pause (k), -5s (j), +5s (l)")
+            showText(f"Auto Advance (f): {"ON" if autoAdvance else "OFF"}")
             if autoAdvance:
-                y += 30
-                screen.blit(
-                    pygame.font.Font(None, 24).render(
-                        f"Auto Advance: ON", True, (255, 255, 255), (0, 0, 0)
-                    ),
-                    (10, y),
-                )
-            if alphabetical:
-                y += 30
-                screen.blit(
-                    pygame.font.Font(None, 24).render(
-                        "Alphabetical: ON", True, (255, 255, 255), (0, 0, 0)
-                    ),
-                    (10, y),
-                )
-            if not doUpdate:
-                y += 30
-                screen.blit(
-                    pygame.font.Font(None, 24).render(
-                        "Update: OFF", True, (255, 255, 255), (0, 0, 0)
-                    ),
-                    (10, y),
-                )
-            if cleanFolders:
-                y += 30
-                screen.blit(
-                    pygame.font.Font(None, 24).render(
-                        "Clean Folders: ON", True, (255, 255, 255), (0, 0, 0)
-                    ),
-                    (10, y),
-                )
+                if current_image:
+                    showText(f"Proceeding in {((advanceImage - advanceTimer)/60):.2f} seconds")
+                    advanceTimer += 1
+                    if advanceTimer >= advanceImage:
+                        advanceNow = True
+                if current_video and (
+                    current_video.frame
+                    >= current_video.frame_count - current_video.frame_rate // 10
+                    or (not current_video.active and not current_video.paused)
+                ):
+                    showText(f"Proceeding in {((advanceVideo - advanceTimer)/60):.2f} seconds")
+                    advanceTimer += 1
+                    if advanceTimer >= advanceVideo:
+                        advanceNow = True
+            showText(f"Alphabetical (p): {"ON" if alphabetical else "OFF"}")
+            showText(f"Clean Folders (c): {"ON" if cleanFolders else "OFF"}")
             if applyFilters:
-                y += 30
-                screen.blit(
-                    pygame.font.Font(None, 24).render(
-                        f"Applying Filters with steps x:{stepX} y:{stepY}", True, (255, 255, 255), (0, 0, 0)
-                    ),
-                    (10, y),
-                )
+                showText(f"Applying Filters (g) with steps x(+num6/-num4):{stepX} y(+num8/-num2):{stepY}")
+            else:
+                showText(f"Not applying filters (g)")
+            showText(f"Reload current item (num5)")
             if showPath:
                 screen.blit(
                     pygame.font.Font(None, 24).render(
@@ -503,6 +473,8 @@ match mode:
                     ),
                     (10, screen_h - 24),
                 )
+            else:
+                showText(f"Not showing path (h)")
             pygame.display.flip()
             clock.tick(60)
     case "explore":

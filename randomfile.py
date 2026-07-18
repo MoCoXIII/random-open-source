@@ -137,7 +137,7 @@ match mode:
             input("Enter to open another")
     case "custom":
         imageExtensions = (".png", ".jpg", ".jpeg", ".webp")
-        videoExtensions = (".webm", ".mp4", ".gif", ".mov")
+        videoExtensions = (".webm", ".mp4", ".gif", ".mov", ".mkv")
         audioExtensions = (".mp3", ".m4a", ".opus", ".ogg", ".wav")
         allExtensions = imageExtensions + videoExtensions + audioExtensions
         wantedExtensions = None
@@ -160,7 +160,7 @@ match mode:
             print(f"Done loading {count} files in {time.time() - start} seconds")
 
         def tryAddFile(wantedExtensions, folder, file, count):
-            if wantedExtensions is None or file.endswith(
+            if wantedExtensions is None or file.lower().endswith(
                             tuple(wantedExtensions)
                         ):
                 files.append(f"{folder}/{file}")
